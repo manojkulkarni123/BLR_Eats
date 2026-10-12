@@ -1,0 +1,1 @@
+Hey this project will act as a shareable personal food map of bangalore solving the problem of sharing our favorite food spots as a list 
