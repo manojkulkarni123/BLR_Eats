@@ -64,7 +64,9 @@
 	</form>
 {:else}
 	<form onsubmit={verify} class="flex flex-col gap-3">
-		<p class="font-semibold">We sent a code to <b>{email}</b>.</p>
+		<p class="font-semibold">
+			Check <b>{email}</b>. Tap the sign-in link in the email, or type the code here.
+		</p>
 		<input
 			required
 			bind:value={code}
