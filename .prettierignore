@@ -12,3 +12,5 @@ bun.lockb
 readme.md
 DECISIONS.md
 CLAUDE.md
+.mcp.json
+.claude/
