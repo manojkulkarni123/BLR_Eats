@@ -208,8 +208,9 @@ try {
 		throw new Error(`Instagram button href: ${ig}`);
 	step('visitor sees the Instagram button → @blr.eats_test');
 
-	// Ask this map: an AI answer that only picks this map's spots.
-	await visitor.click('button[aria-label="Search this map"]');
+	// Ask this map: an AI answer that only picks this map's spots. (Search may still be open.)
+	const openSearch = visitor.locator('button[aria-label="Search this map"]');
+	if (await openSearch.count()) await openSearch.click();
 	await visitor.fill('input[aria-label="Search this map"]', 'something sweet for dessert');
 	await visitor.click('button[aria-label="Ask this map"]');
 	const bubble = visitor.getByRole('status').filter({ hasText: '✨' });
