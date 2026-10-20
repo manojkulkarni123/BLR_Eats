@@ -5,6 +5,7 @@
 	import MapView from '#lib/components/MapView.svelte';
 	import UiIcon from '#lib/components/UiIcon.svelte';
 	import InstagramIcon from '#lib/components/InstagramIcon.svelte';
+	import FoodIcon from '#lib/components/FoodIcon.svelte';
 	import { categoryByKey } from '#lib/categories.ts';
 	import { ICONS, iconSvg, type IconKey } from '#lib/icons.ts';
 	import { bengaluruPoster as theme, swatchFor } from '#lib/theme.ts';
@@ -19,19 +20,21 @@
 
 	const keyFor = (s: Spot): IconKey => (s.category ?? 'spot') as IconKey;
 	const spotColour = (s: Spot) => swatchFor(theme, s.category).bg;
-	const icon = (s: Spot, size = 44) =>
-		iconSvg(keyFor(s), { spot: spotColour(s), ink: INK, paper: PAPER, cream: CREAM }, size);
+	const colorsFor = (s: Spot) => ({ spot: spotColour(s), ink: INK, paper: PAPER, cream: CREAM });
+	const icon = (s: Spot, size = 44) => iconSvg(keyFor(s), colorsFor(s), size);
 	const label = (s: Spot) =>
 		s.category ? categoryByKey[s.category].label : (map.customCategories[0]?.name ?? 'Spot');
 
 	let selectedId: string | null = $state(null);
 	const selected = $derived(map.spots.find((s) => s.id === selectedId) ?? map.spots[0]);
 
+	const escapeHtml = (t: string) => t.replace(/[&<>"']/g, (c) => `&#${c.charCodeAt(0)};`);
+
 	// Poster pins: a paper badge with the illustration; the selected one shows its name.
 	const pinMarkup = (s: Spot) =>
 		`<span class="ppin" style="--spot:${spotColour(s)}">` +
 		`<span class="ppin-badge">${icon(s, 38)}</span>` +
-		`<span class="ppin-name">${s.name.replace(/</g, '&lt;')}</span></span>`;
+		`<span class="ppin-name">${escapeHtml(s.name)}</span></span>`;
 
 	const chips = [
 		{ label: 'All', count: 11, on: true },
@@ -122,7 +125,9 @@
 
 			<div class="phone-bottom">
 				<article class="card" style="--spot:{spotColour(selected)}">
-					<div class="card-art">{@html icon(selected, 64)}</div>
+					<div class="card-art">
+						<FoodIcon kind={keyFor(selected)} colors={colorsFor(selected)} size={64} />
+					</div>
 					<div class="card-body">
 						<p class="card-kicker">{label(selected)} · {selected.area}</p>
 						<h3 class="card-name">{selected.name}</h3>
@@ -155,7 +160,11 @@
 		<div class="icon-grid">
 			{#each allIcons as k (k)}
 				<figure>
-					{@html iconSvg(k, { spot: iconColour(k), ink: INK, paper: PAPER, cream: CREAM }, 72)}
+					<FoodIcon
+						kind={k}
+						colors={{ spot: iconColour(k), ink: INK, paper: PAPER, cream: CREAM }}
+						size={72}
+					/>
 					<figcaption>{iconName(k)}</figcaption>
 				</figure>
 			{/each}
@@ -182,7 +191,7 @@
 		<div class="card-row">
 			{#each map.spots.slice(0, 3) as s (s.id)}
 				<article class="card" style="--spot:{spotColour(s)}">
-					<div class="card-art">{@html icon(s, 64)}</div>
+					<div class="card-art"><FoodIcon kind={keyFor(s)} colors={colorsFor(s)} size={64} /></div>
 					<div class="card-body">
 						<p class="card-kicker">{label(s)} · {s.area}</p>
 						<h3 class="card-name">{s.name}</h3>
@@ -196,13 +205,13 @@
 			{/each}
 			<article class="card photo" style="--spot:{theme.categories.cafes.bg}">
 				<div class="photo-fill">
-					<span class="photo-badge"
-						>{@html iconSvg(
-							'cafes',
-							{ spot: theme.categories.cafes.bg, ink: INK, paper: PAPER, cream: CREAM },
-							34
-						)}</span
-					>
+					<span class="photo-badge">
+						<FoodIcon
+							kind="cafes"
+							colors={{ spot: theme.categories.cafes.bg, ink: INK, paper: PAPER, cream: CREAM }}
+							size={34}
+						/>
+					</span>
 				</div>
 				<div class="card-body">
 					<p class="card-kicker">Cafés · Jayanagar</p>
@@ -237,14 +246,18 @@
 				<span class="story-lake" style="left:58%;top:30%"></span>
 				<span class="story-park" style="left:18%;top:70%"></span>
 				{#each posterPins as p (p.s.id)}
-					<span class="story-pin" style="left:{p.x}%;top:{p.y}%">{@html icon(p.s, 30)}</span>
+					<span class="story-pin" style="left:{p.x}%;top:{p.y}%"
+						><FoodIcon kind={keyFor(p.s)} colors={colorsFor(p.s)} size={30} /></span
+					>
 				{/each}
 			</div>
 			<ol class="story-list">
 				{#each map.spots.slice(0, 4) as s, i (s.id)}
 					<li>
 						<span class="story-n">{i + 1}</span>
-						<span class="story-li-icon">{@html icon(s, 26)}</span>
+						<span class="story-li-icon"
+							><FoodIcon kind={keyFor(s)} colors={colorsFor(s)} size={26} /></span
+						>
 						<span><b>{s.name}</b> <em>{s.area}</em></span>
 					</li>
 				{/each}
