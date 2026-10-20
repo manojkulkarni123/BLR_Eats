@@ -29,7 +29,15 @@ export type Spot = {
 	customCategoryId: string | null;
 	recommendation: string | null;
 	reelUrl: string | null;
-	photos: { id: string; url: string; thumbUrl: string; width: number; height: number }[];
+	photos: {
+		id: string;
+		path: string;
+		thumbPath: string;
+		url: string;
+		thumbUrl: string;
+		width: number;
+		height: number;
+	}[];
 };
 
 export type FoodMap = {

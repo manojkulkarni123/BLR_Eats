@@ -10,9 +10,11 @@
 		selected: boolean;
 		onfocus: () => void;
 		onshare: () => void;
+		/** Owner only. */
+		onedit?: () => void;
 	};
 
-	let { spot, emoji, label, swatch, selected, onfocus, onshare }: Props = $props();
+	let { spot, emoji, label, swatch, selected, onfocus, onshare, onedit }: Props = $props();
 	const photo = $derived(spot.photos[0] ?? null);
 </script>
 
@@ -76,6 +78,16 @@
 		>
 			Take me there →
 		</a>
+		{#if onedit}
+			<button
+				type="button"
+				onclick={onedit}
+				aria-label="Edit {spot.name}"
+				class="sticker grid size-10 place-items-center rounded-full bg-surface text-lg active:translate-y-px"
+			>
+				✏️
+			</button>
+		{/if}
 		<button
 			type="button"
 			onclick={onshare}

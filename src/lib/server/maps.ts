@@ -68,6 +68,8 @@ export async function getMap(supabase: SupabaseClient, handle: string): Promise<
 				.sort((a, b) => a.position - b.position)
 				.map((p) => ({
 					id: p.id,
+					path: p.path,
+					thumbPath: p.thumb_path,
 					url: photoUrl(p.path),
 					thumbUrl: photoUrl(p.thumb_path),
 					width: p.width,

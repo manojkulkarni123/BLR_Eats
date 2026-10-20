@@ -1,24 +1,32 @@
 <script lang="ts">
-	import { goto } from '$app/navigation';
+	import { goto, refreshAll } from '$app/navigation';
+	import { page } from '$app/state';
 	import { onMount, tick } from 'svelte';
 	import MapView from './MapView.svelte';
 	import SpotCard from './SpotCard.svelte';
 	import FilterChips from './FilterChips.svelte';
+	import SpotEditor from './SpotEditor.svelte';
+	import TopSpotsSheet from './TopSpotsSheet.svelte';
 	import { getTheme, swatchFor } from '#lib/theme.ts';
 	import { availableSlices, resolveSlice, spotCategoryLabel, spotEmoji, spotsInSlice } from '#lib/slices.ts';
 	import { shareLink } from '#lib/share.ts';
 	import type { FoodMap, Spot } from '#lib/types.ts';
 
+	type Me = { id: string; handle: string | null } | null;
 	type Props = {
 		map: FoodMap;
+		me: Me;
 		sliceSlug: string | null;
 		spotSlug: string | null;
 	};
 
-	let { map, sliceSlug, spotSlug }: Props = $props();
+	let { map, me, sliceSlug, spotSlug }: Props = $props();
 
+	// One screen for everyone (DECISIONS.md): the owner just gets a few more buttons.
+	const isOwner = $derived(me?.id === map.profile.id);
 	const theme = $derived(getTheme(map.profile.theme));
 	const name = $derived(map.profile.displayName);
+	const handle = $derived(map.profile.handle);
 	const slice = $derived(sliceSlug ? resolveSlice(map, sliceSlug) : null);
 	const visible = $derived(spotsInSlice(map.spots, slice));
 	const openSpot = $derived(spotSlug ? (map.spots.find((s) => s.slug === spotSlug) ?? null) : null);
@@ -32,24 +40,43 @@
 	let toast: string | null = $state(null);
 	let rail: HTMLDivElement;
 
+	// Owner sheets.
+	let editing: Spot | 'new' | null = $state(null);
+	let addingTop = $state(false);
+	let menuOpen = $state(false);
+	let celebrate: number | null = $state(null);
+
+	// Viewers: the "Make your own map" button grows after they've browsed a few spots.
+	const browsed = new Set<string>();
+	let curious = $state(false);
+
 	// Keep the selection inside the visible set (a filter change may drop it).
 	$effect(() => {
 		if (openSpot) selectedId = openSpot.id;
 		else if (!visible.some((s) => s.id === selectedId)) selectedId = visible[0]?.id ?? null;
 	});
 
+	$effect(() => {
+		if (selectedId) browsed.add(selectedId);
+		if (browsed.size >= 3) curious = true;
+	});
+
 	function moveCamera(id: string) {
 		focus = { id, nonce: (focus?.nonce ?? 0) + 1 };
 	}
 
-	// Pin tapped: select it and bring its card into view.
-	async function selectFromMap(id: string) {
-		selectedId = id;
-		moveCamera(id);
+	async function scrollToCard(id: string) {
 		await tick();
 		railScrolling = true;
 		rail.querySelector(`[data-id="${id}"]`)?.scrollIntoView({ behavior: 'smooth', inline: 'center', block: 'nearest' });
 		setTimeout(() => (railScrolling = false), 700);
+	}
+
+	// Pin tapped: select it and bring its card into view.
+	function selectFromMap(id: string) {
+		selectedId = id;
+		moveCamera(id);
+		scrollToCard(id);
 	}
 
 	// Card swiped into the centre by the user: follow it on the map.
@@ -75,6 +102,13 @@
 		const touched = () => (userTouchedRail = true);
 		rail.addEventListener('pointerdown', touched, { passive: true });
 		rail.addEventListener('wheel', touched, { passive: true });
+
+		// Fresh map from /welcome: open "Add your top spots" straight away.
+		if (page.url.searchParams.get('add') === 'top') {
+			if (isOwner) addingTop = true;
+			goto(page.url.pathname, { replace: true, reset: false });
+		}
+
 		return () => {
 			clearTimeout(fallback);
 			observer.disconnect();
@@ -87,10 +121,7 @@
 	function pick(slug: string | null) {
 		userTouchedRail = false;
 		rail.scrollTo({ left: 0 });
-		goto(slug ? `/${map.profile.handle}/${slug}` : `/${map.profile.handle}`, {
-			replace: true,
-			reset: false
-		});
+		goto(slug ? `/${handle}/${slug}` : `/${handle}`, { replace: true, reset: false });
 	}
 
 	function flash(message: string) {
@@ -101,12 +132,11 @@
 	async function share(title: string, text: string, path: string) {
 		const result = await shareLink({ title, text, url: new URL(path, location.origin).href });
 		if (result === 'copied') flash('Link copied');
-		if (result === 'failed') flash("Couldn't share. Copy the address bar instead");
+		if (result === 'failed') flash('Couldn’t share. Copy the address bar instead');
 	}
 
 	// The Share button shares whatever is on screen.
 	function shareScreen() {
-		const handle = map.profile.handle;
 		if (openSpot) return shareSpot(openSpot);
 		if (slice) {
 			const title = `${name}'s ${slice.label} spots in Bangalore`;
@@ -119,7 +149,7 @@
 	function shareSpot(spot: Spot) {
 		const title = `${spot.name}, ${spot.area}`;
 		const text = spot.recommendation ? `${title}: ${spot.recommendation}` : `${title}, recommended by ${name}`;
-		share(title, text, `/${map.profile.handle}/spot/${spot.slug}`);
+		share(title, text, `/${handle}/spot/${spot.slug}`);
 	}
 
 	function nearMe() {
@@ -129,6 +159,27 @@
 			() => flash('Location is off. You can still browse the map'),
 			{ enableHighAccuracy: false, timeout: 8000, maximumAge: 60000 }
 		);
+	}
+
+	async function afterEdit(result: { savedId?: string; deleted?: boolean }) {
+		const wasNew = editing === 'new';
+		await refreshAll();
+		editing = null;
+		if (result.deleted) return flash('Removed');
+		if (result.savedId) {
+			const id = result.savedId;
+			if (slice && !visible.some((s) => s.id === id)) await goto(`/${handle}`, { replace: true, reset: false });
+			selectedId = id;
+			moveCamera(id);
+			scrollToCard(id);
+			flash(wasNew ? `Spot #${map.spots.length} added 🎉` : 'Saved');
+		}
+	}
+
+	async function afterTop(added: number) {
+		await refreshAll();
+		addingTop = false;
+		if (added) celebrate = map.spots.length;
 	}
 </script>
 
@@ -148,43 +199,112 @@
 	<!-- Header renders on the server, so something colourful shows before the map loads. -->
 	<header class="pointer-events-none absolute inset-x-0 top-0 z-10 pt-[max(12px,env(safe-area-inset-top))]">
 		<div class="pointer-events-auto flex items-center gap-2 px-4 pb-2">
-			<div class="sticker flex min-w-0 items-center gap-2 rounded-full bg-surface py-1 pr-4 pl-1">
+			<button
+				type="button"
+				class="sticker flex min-w-0 items-center gap-2 rounded-full bg-surface py-1 pr-4 pl-1 text-left"
+				class:cursor-default={!isOwner}
+				onclick={() => isOwner && (menuOpen = !menuOpen)}
+				aria-expanded={isOwner ? menuOpen : undefined}
+			>
 				{#if map.profile.avatarUrl}
 					<img src={map.profile.avatarUrl} alt="" class="size-9 rounded-full border-2 border-ink object-cover" />
 				{:else}
-					<span class="grid size-9 place-items-center rounded-full border-2 border-ink bg-accent text-lg font-extrabold text-surface">
+					<span class="grid size-9 flex-none place-items-center rounded-full border-2 border-ink bg-accent text-lg font-extrabold text-surface">
 						{name.slice(0, 1).toUpperCase()}
 					</span>
 				{/if}
-				<div class="min-w-0 leading-tight">
-					<p class="truncate text-[17px] font-extrabold">
+				<span class="min-w-0 leading-tight">
+					<span class="block truncate text-[17px] font-extrabold">
 						{name}'s {slice ? slice.label : 'Bangalore'}
-					</p>
-					<p class="text-xs font-semibold opacity-70">
-						{slice ? visible.length : map.spots.length} spots
-					</p>
-				</div>
-			</div>
-			<button
-				type="button"
-				onclick={shareScreen}
-				class="sticker ml-auto flex-none rounded-full bg-sun px-4 py-2 text-[16px] font-extrabold active:translate-y-px"
-			>
-				Share ↗
+					</span>
+					<span class="block text-xs font-semibold opacity-70">
+						{slice ? visible.length : map.spots.length} spots{isOwner ? ' · your map ▾' : ''}
+					</span>
+				</span>
 			</button>
+			{#if map.spots.length}
+				<button
+					type="button"
+					onclick={shareScreen}
+					class="sticker ml-auto flex-none rounded-full bg-sun px-4 py-2 text-[16px] font-extrabold active:translate-y-px"
+				>
+					Share ↗
+				</button>
+			{/if}
 		</div>
-		<div class="pointer-events-auto">
-			<FilterChips {slices} total={map.spots.length} active={slice?.slug ?? null} onpick={pick} />
-		</div>
+
+		{#if menuOpen && isOwner}
+			<div class="pointer-events-auto mx-4 mb-2 flex w-60 flex-col overflow-hidden rounded-2xl border-[2.5px] border-ink bg-surface shadow-[3px_3px_0_var(--ink)]">
+				<button type="button" class="menu-item" onclick={() => ((menuOpen = false), (addingTop = true))}>
+					⚡ Add several spots
+				</button>
+				<button type="button" class="menu-item" onclick={() => ((menuOpen = false), (editing = 'new'))}>
+					＋ Add one spot
+				</button>
+				<form method="POST" action="/signout">
+					<button class="menu-item w-full">👋 Sign out</button>
+				</form>
+			</div>
+		{/if}
+
+		{#if map.spots.length}
+			<div class="pointer-events-auto">
+				<FilterChips {slices} total={map.spots.length} active={slice?.slug ?? null} onpick={pick} />
+			</div>
+		{/if}
 	</header>
 
-	<button
-		type="button"
-		onclick={nearMe}
-		class="sticker absolute right-4 bottom-[calc(230px+env(safe-area-inset-bottom))] z-10 rounded-full bg-surface px-3 py-1.5 text-sm font-extrabold active:translate-y-px"
+	{#if map.spots.length === 0}
+		<div class="absolute inset-x-6 top-1/2 z-10 mx-auto max-w-sm -translate-y-1/2">
+			<div class="sticker rounded-3xl bg-surface p-6 text-center">
+				<p class="text-5xl">🗺️</p>
+				{#if isOwner}
+					<h2 class="mt-2 text-2xl leading-tight font-extrabold">Your map is waiting</h2>
+					<p class="mt-1 font-semibold opacity-75">Add your go-to places. It takes about two minutes.</p>
+					<button
+						type="button"
+						onclick={() => (addingTop = true)}
+						class="sticker mt-4 w-full rounded-full bg-sun py-3 text-lg font-extrabold"
+					>
+						Add your top spots →
+					</button>
+				{:else}
+					<h2 class="mt-2 text-2xl leading-tight font-extrabold">{name} hasn't pinned anything yet</h2>
+					<p class="mt-1 font-semibold opacity-75">Check back soon.</p>
+				{/if}
+			</div>
+		</div>
+	{/if}
+
+	<div
+		class="absolute right-4 left-4 z-10 flex items-end justify-between gap-2 bottom-[calc(228px+env(safe-area-inset-bottom))]"
+		class:hidden={map.spots.length === 0}
 	>
-		📍 Near me
-	</button>
+		{#if isOwner}
+			<button
+				type="button"
+				onclick={() => (editing = 'new')}
+				class="sticker rounded-full bg-accent px-4 py-2 font-extrabold text-surface active:translate-y-px"
+			>
+				＋ Add spot
+			</button>
+		{:else}
+			<a
+				href={me?.handle ? `/${me.handle}` : '/'}
+				class="sticker cta rounded-full bg-accent font-extrabold text-surface"
+				class:curious
+			>
+				{me?.handle ? '🗺️ My map' : '✨ Make your own map'}
+			</a>
+		{/if}
+		<button
+			type="button"
+			onclick={nearMe}
+			class="sticker rounded-full bg-surface px-3 py-1.5 text-sm font-extrabold active:translate-y-px"
+		>
+			📍 Near me
+		</button>
+	</div>
 
 	<div
 		bind:this={rail}
@@ -204,17 +324,51 @@
 						moveCamera(spot.id);
 					}}
 					onshare={() => shareSpot(spot)}
+					onedit={isOwner ? () => (editing = spot) : undefined}
 				/>
 			</div>
 		{/each}
 	</div>
 
+	{#if celebrate !== null}
+		<div class="absolute inset-x-6 top-1/2 z-20 mx-auto max-w-sm -translate-y-1/2">
+			<div class="sticker celebrate rounded-3xl bg-sun p-6 text-center">
+				<p class="text-5xl">🎉</p>
+				<h2 class="mt-2 text-3xl leading-none font-extrabold">Your map has {celebrate} spots</h2>
+				<p class="mt-2 font-semibold">Looks good, right? Send it to someone who keeps asking where to eat.</p>
+				<button
+					type="button"
+					onclick={() => ((celebrate = null), shareScreen())}
+					class="sticker mt-4 w-full rounded-full bg-ink py-3 text-lg font-extrabold text-paper"
+				>
+					Share my map ↗
+				</button>
+				<button type="button" class="mt-3 font-extrabold underline" onclick={() => (celebrate = null)}>
+					Look around first
+				</button>
+			</div>
+		</div>
+	{/if}
+
 	{#if toast}
-		<div class="sticker absolute top-1/2 left-1/2 z-20 -translate-x-1/2 rounded-full bg-ink px-4 py-2 font-extrabold text-paper" role="status">
+		<div class="sticker absolute top-1/2 left-1/2 z-40 -translate-x-1/2 rounded-full bg-ink px-4 py-2 font-extrabold whitespace-nowrap text-paper" role="status">
 			{toast}
 		</div>
 	{/if}
 </main>
+
+{#if isOwner && me && editing}
+	<SpotEditor
+		{map}
+		ownerId={me.id}
+		spot={editing === 'new' ? null : editing}
+		onclose={() => (editing = null)}
+		ondone={afterEdit}
+	/>
+{/if}
+{#if isOwner && me && addingTop}
+	<TopSpotsSheet {map} ownerId={me.id} onclose={() => (addingTop = false)} ondone={afterTop} />
+{/if}
 
 <style>
 	/* Cards rise in after the pins have popped. */
@@ -229,5 +383,25 @@
 			padding-left: 24px;
 			padding-right: 24px;
 		}
+	}
+	.menu-item {
+		padding: 0.7rem 1rem;
+		text-align: left;
+		font-weight: 800;
+		border-bottom: 2px solid color-mix(in srgb, var(--ink) 10%, transparent);
+	}
+	.cta {
+		padding: 0.35rem 0.8rem;
+		font-size: 14px;
+		transition:
+			padding 300ms cubic-bezier(0.34, 1.56, 0.64, 1),
+			font-size 300ms cubic-bezier(0.34, 1.56, 0.64, 1);
+	}
+	.cta.curious {
+		padding: 0.55rem 1.1rem;
+		font-size: 17px;
+	}
+	.celebrate {
+		animation: pop-in 480ms cubic-bezier(0.34, 1.56, 0.64, 1) both;
 	}
 </style>
