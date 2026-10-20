@@ -133,8 +133,101 @@ export async function createCustomCategory(
 
 export async function updateProfile(
 	ownerId: string,
-	patch: { display_name?: string; bio?: string | null; instagram?: string | null }
+	patch: {
+		display_name?: string;
+		bio?: string | null;
+		instagram?: string | null;
+		avatar_path?: string | null;
+	}
 ) {
 	const { error } = await supabase().from('profiles').update(patch).eq('id', ownerId);
 	fail(error);
+}
+
+/** Square, small profile photo: cropped to the centre and resized in the browser. */
+export async function uploadAvatar(
+	ownerId: string,
+	file: File,
+	oldPath: string | null
+): Promise<string> {
+	const bitmap = await createImageBitmap(file, { imageOrientation: 'from-image' });
+	const side = Math.min(bitmap.width, bitmap.height);
+	const canvas = document.createElement('canvas');
+	canvas.width = canvas.height = 400;
+	canvas
+		.getContext('2d')!
+		.drawImage(
+			bitmap,
+			(bitmap.width - side) / 2,
+			(bitmap.height - side) / 2,
+			side,
+			side,
+			0,
+			0,
+			400,
+			400
+		);
+	bitmap.close();
+	const toBlob = (type: string) =>
+		new Promise<Blob | null>((resolve) => canvas.toBlob(resolve, type, 0.85));
+	let blob = await toBlob('image/webp');
+	let ext = 'webp';
+	if (!blob || blob.type !== 'image/webp') {
+		blob = await toBlob('image/jpeg');
+		ext = 'jpg';
+	}
+	if (!blob) throw new Error('Could not read that photo');
+	const path = `${ownerId}/avatar-${crypto.randomUUID()}.${ext}`;
+	const { error } = await supabase()
+		.storage.from('photos')
+		.upload(path, blob, { contentType: blob.type, cacheControl: '31536000' });
+	fail(error);
+	if (oldPath) await supabase().storage.from('photos').remove([oldPath]);
+	return path;
+}
+
+export async function createList(ownerId: string, name: string, emoji: string): Promise<string> {
+	const { data, error } = await supabase()
+		.from('lists')
+		.insert({ owner_id: ownerId, name: name.trim(), slug: slugify(name), emoji: emoji || '⭐' })
+		.select('id')
+		.single();
+	fail(error);
+	return data!.id as string;
+}
+
+export async function deleteList(listId: string): Promise<void> {
+	const { error } = await supabase().from('lists').delete().eq('id', listId);
+	fail(error);
+}
+
+/** Put a spot in exactly these lists (adds and removes as needed). */
+export async function setSpotLists(
+	ownerId: string,
+	spotId: string,
+	listIds: string[],
+	currentIds: string[]
+): Promise<void> {
+	const db = supabase();
+	const add = listIds.filter((id) => !currentIds.includes(id));
+	const remove = currentIds.filter((id) => !listIds.includes(id));
+	if (add.length) {
+		const { error } = await db
+			.from('list_spots')
+			.insert(add.map((list_id) => ({ list_id, spot_id: spotId, owner_id: ownerId })));
+		fail(error);
+	}
+	if (remove.length) {
+		const { error } = await db
+			.from('list_spots')
+			.delete()
+			.eq('spot_id', spotId)
+			.in('list_id', remove);
+		fail(error);
+	}
+}
+
+/** Count a visit to someone's map (once per browser session; the owner isn't counted). */
+export async function recordView(handle: string): Promise<void> {
+	await supabase().rpc('record_view', { p_handle: handle });
 }

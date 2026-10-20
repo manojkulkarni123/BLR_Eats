@@ -5,6 +5,8 @@ export type Profile = {
 	handle: string;
 	displayName: string;
 	avatarUrl: string | null;
+	/** Storage path of the photo, to replace it later. */
+	avatarPath: string | null;
 	bio: string | null;
 	/** Instagram username, without the @. */
 	instagram: string | null;
@@ -42,14 +44,25 @@ export type Spot = {
 	}[];
 };
 
+/** A hand-picked list of spots, e.g. "Date night". */
+export type SpotList = {
+	id: string;
+	name: string;
+	slug: string;
+	emoji: string;
+	spotIds: string[];
+};
+
 export type FoodMap = {
 	profile: Profile;
 	spots: Spot[];
 	customCategories: CustomCategory[];
+	lists: SpotList[];
 };
 
 /** What a slice URL segment resolved to. */
 export type Slice =
 	| { kind: 'category'; slug: string; label: string; emoji: string; key: CategoryKey }
 	| { kind: 'custom'; slug: string; label: string; emoji: string; id: string }
+	| { kind: 'list'; slug: string; label: string; emoji: string; id: string; spotIds: string[] }
 	| { kind: 'area'; slug: string; label: string; emoji: string };

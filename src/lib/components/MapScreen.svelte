@@ -9,6 +9,8 @@
 	import TopSpotsSheet from './TopSpotsSheet.svelte';
 	import SpotSheet from './SpotSheet.svelte';
 	import ProfileSheet from './ProfileSheet.svelte';
+	import ListsSheet from './ListsSheet.svelte';
+	import { recordView } from '#lib/spots-client.ts';
 	import InstagramIcon from './InstagramIcon.svelte';
 	import { instagramUrl } from '#lib/instagram.ts';
 	import { getTheme, swatchFor } from '#lib/theme.ts';
@@ -28,9 +30,22 @@
 		me: Me;
 		sliceSlug: string | null;
 		spotSlug: string | null;
+		/** View counts, only for the owner. */
+		stats: { total: number; week: number } | null;
 	};
 
-	let { map, me, sliceSlug, spotSlug }: Props = $props();
+	let { map, me, sliceSlug, spotSlug, stats }: Props = $props();
+
+	const plural = (n: number, word: string) =>
+		`${n === 1 ? '1' : compact(n)} ${word}${n === 1 ? '' : 's'}`;
+	const compact = (n: number) =>
+		n >= 1e6
+			? `${(n / 1e6).toFixed(1)}M`
+			: n >= 1e4
+				? `${Math.round(n / 1e3)}k`
+				: n >= 1e3
+					? `${(n / 1e3).toFixed(1)}k`
+					: `${n}`;
 
 	// One screen for everyone (DECISIONS.md): the owner just gets a few more buttons.
 	const isOwner = $derived(me?.id === map.profile.id);
@@ -66,6 +81,18 @@
 				: null
 	);
 	const slices = $derived(availableSlices(map));
+	// "3 spots · 👀 1.2k views · your map ▾"
+	const subtitle = $derived(
+		[
+			plural(slice || words.length ? visible.length : map.spots.length, 'spot'),
+			stats && `👀 ${plural(stats.total, 'view')}`,
+			// The owner's views already say "this is yours"; keep the line short enough for one row.
+			isOwner && !stats ? 'your map ▾' : '▾'
+		]
+			.filter(Boolean)
+			.join(' · ')
+			.replace(' · ▾', ' ▾')
+	);
 
 	let selectedId: string | null = $state(null);
 	let focus: { id: string; nonce: number } | null = $state(null);
@@ -79,6 +106,9 @@
 	let addingTop = $state(false);
 	let menuOpen = $state(false);
 	let editingProfile = $state(false);
+	let managingLists = $state(false);
+	// Viewers tap the name chip to see who made the map.
+	let aboutOpen = $state(false);
 	let celebrate: number | null = $state(null);
 
 	// Where the map is looking: biases place search, and is where a dropped pin lands.
@@ -169,6 +199,19 @@
 		const touched = () => (userTouchedRail = true);
 		rail.addEventListener('pointerdown', touched, { passive: true });
 		rail.addEventListener('wheel', touched, { passive: true });
+
+		// Count this visit once per browser session (the database ignores the owner's own visits).
+		if (!isOwner && handle !== 'demo') {
+			const key = `viewed:${handle}`;
+			try {
+				if (!sessionStorage.getItem(key)) {
+					sessionStorage.setItem(key, '1');
+					recordView(handle);
+				}
+			} catch {
+				recordView(handle);
+			}
+		}
 
 		// Fresh map from /welcome: open "Add your top spots" straight away.
 		if (page.url.searchParams.get('add') === 'top') {
@@ -276,9 +319,8 @@
 			<button
 				type="button"
 				class="sticker flex min-w-0 items-center gap-2 rounded-full bg-surface py-1 pr-4 pl-1 text-left"
-				class:cursor-default={!isOwner}
-				onclick={() => isOwner && (menuOpen = !menuOpen)}
-				aria-expanded={isOwner ? menuOpen : undefined}
+				onclick={() => (isOwner ? (menuOpen = !menuOpen) : (aboutOpen = !aboutOpen))}
+				aria-expanded={isOwner ? menuOpen : aboutOpen}
 			>
 				{#if map.profile.avatarUrl}
 					<img
@@ -298,9 +340,7 @@
 						{name}'s {slice ? slice.label : 'Bangalore'}
 					</span>
 					<span class="block text-xs font-semibold opacity-70">
-						{slice || words.length ? visible.length : map.spots.length} spots{isOwner
-							? ' · your map ▾'
-							: ''}
+						{subtitle}
 					</span>
 				</span>
 			</button>
@@ -353,9 +393,59 @@
 				>
 					✏️ Edit profile & Instagram
 				</button>
+				<button
+					type="button"
+					class="menu-item"
+					onclick={() => ((menuOpen = false), (managingLists = true))}
+				>
+					⭐ Your lists
+				</button>
+				{#if stats}
+					<p class="menu-item opacity-70">
+						👀 {stats.total.toLocaleString('en-IN')} views · {stats.week.toLocaleString('en-IN')} this
+						week
+					</p>
+				{/if}
 				<form method="POST" action="/signout">
 					<button class="menu-item w-full">👋 Sign out</button>
 				</form>
+			</div>
+		{/if}
+
+		{#if aboutOpen && !isOwner}
+			<div
+				class="sticker pointer-events-auto mx-4 mb-2 flex max-w-sm items-center gap-3 rounded-3xl bg-surface p-3"
+			>
+				{#if map.profile.avatarUrl}
+					<img
+						src={map.profile.avatarUrl}
+						alt=""
+						class="size-16 rounded-full border-2 border-ink object-cover"
+					/>
+				{:else}
+					<span
+						class="grid size-16 flex-none place-items-center rounded-full border-2 border-ink bg-accent text-2xl font-extrabold text-surface"
+						>{name.slice(0, 1).toUpperCase()}</span
+					>
+				{/if}
+				<div class="min-w-0 flex-1">
+					<p class="truncate text-lg font-extrabold">{name}</p>
+					{#if map.profile.bio}<p class="text-sm leading-snug font-semibold opacity-80">
+							{map.profile.bio}
+						</p>{/if}
+					<p class="mt-0.5 text-xs font-extrabold opacity-60">
+						{map.spots.length} spots in Bangalore
+					</p>
+				</div>
+				{#if map.profile.instagram}
+					<a
+						href={instagramUrl(map.profile.instagram)}
+						target="_blank"
+						rel="noopener noreferrer"
+						class="sticker ig flex-none rounded-full px-3 py-1.5 text-sm font-extrabold text-surface"
+						>Follow</a
+					>
+				{/if}
 			</div>
 		{/if}
 
@@ -535,6 +625,8 @@
 		swatch={swatchFor(theme, spot.category)}
 		recommendedBy={name}
 		instagram={map.profile.instagram}
+		lists={map.lists.filter((l) => l.spotIds.includes(spot.id))}
+		{handle}
 		onclose={closeSheet}
 		onshare={() => shareSpot(spot)}
 		onedit={isOwner
@@ -558,6 +650,15 @@
 			ondone={afterEdit}
 		/>
 	</div>
+{/if}
+{#if isOwner && me && managingLists}
+	<ListsSheet
+		ownerId={me.id}
+		{handle}
+		lists={map.lists}
+		onclose={() => (managingLists = false)}
+		onchange={() => refreshAll()}
+	/>
 {/if}
 {#if isOwner && editingProfile}
 	<ProfileSheet

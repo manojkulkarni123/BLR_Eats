@@ -38,7 +38,7 @@ export async function getMap(supabase: SupabaseClient, handle: string): Promise<
 		.maybeSingle();
 	if (!profile) return null;
 
-	const [spots, categories] = await Promise.all([
+	const [spots, categories, lists] = await Promise.all([
 		supabase
 			.from('spots')
 			.select(
@@ -47,7 +47,21 @@ export async function getMap(supabase: SupabaseClient, handle: string): Promise<
 			.eq('owner_id', profile.id)
 			.order('created_at', { ascending: false })
 			.returns<SpotRow[]>(),
-		supabase.from('custom_categories').select('id, name, slug, emoji').eq('owner_id', profile.id)
+		supabase.from('custom_categories').select('id, name, slug, emoji').eq('owner_id', profile.id),
+		supabase
+			.from('lists')
+			.select('id, name, slug, emoji, list_spots (spot_id)')
+			.eq('owner_id', profile.id)
+			.order('created_at')
+			.returns<
+				{
+					id: string;
+					name: string;
+					slug: string;
+					emoji: string;
+					list_spots: { spot_id: string }[];
+				}[]
+			>()
 	]);
 
 	return {
@@ -56,6 +70,7 @@ export async function getMap(supabase: SupabaseClient, handle: string): Promise<
 			handle: profile.handle,
 			displayName: profile.display_name,
 			avatarUrl: profile.avatar_path ? photoUrl(profile.avatar_path) : null,
+			avatarPath: profile.avatar_path,
 			bio: profile.bio,
 			instagram: profile.instagram,
 			theme: profile.theme
@@ -84,6 +99,10 @@ export async function getMap(supabase: SupabaseClient, handle: string): Promise<
 					height: p.height
 				}))
 		})),
-		customCategories: categories.data ?? []
+		customCategories: categories.data ?? [],
+		lists: (lists.data ?? []).map(({ list_spots, ...l }) => ({
+			...l,
+			spotIds: list_spots.map((x) => x.spot_id)
+		}))
 	};
 }

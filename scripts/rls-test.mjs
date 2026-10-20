@@ -112,6 +112,61 @@ try {
 		!!(await a.client.from('spots').insert({ ...spot, slug: 'mum', lat: 19.07, lng: 72.87 })).error
 	);
 
+	const listA = await a.client
+		.from('lists')
+		.insert({ owner_id: a.id, name: 'Date night', slug: 'date-night' })
+		.select('id')
+		.single();
+	check('A creates a list', !listA.error);
+	check(
+		'A adds own spot to own list',
+		!(
+			await a.client
+				.from('list_spots')
+				.insert({ list_id: listA.data.id, spot_id: spotId, owner_id: a.id })
+		).error
+	);
+	const listB = await b.client
+		.from('lists')
+		.insert({ owner_id: b.id, name: 'B list', slug: 'b-list' })
+		.select('id')
+		.single();
+	check(
+		"B cannot put A's spot in B's list",
+		!!(
+			await b.client
+				.from('list_spots')
+				.insert({ list_id: listB.data.id, spot_id: spotId, owner_id: b.id })
+		).error
+	);
+	check(
+		"B cannot add to A's list",
+		!!(
+			await b.client
+				.from('list_spots')
+				.insert({ list_id: listA.data.id, spot_id: spotId, owner_id: b.id })
+		).error
+	);
+
+	const handleA = `rlsa${stamp % 1e6}`;
+	const anonViewer = createClient(url, anonKey);
+	check(
+		'A visitor can record a view',
+		!(await anonViewer.rpc('record_view', { p_handle: handleA })).error
+	);
+	await a.client.rpc('record_view', { p_handle: handleA }); // the owner's own visit
+	const mine = await a.client.from('map_views').select('views').eq('profile_id', a.id);
+	check(
+		'Owner sees views, own visit not counted',
+		!mine.error && mine.data.reduce((n, r) => n + r.views, 0) === 1
+	);
+	const peek = await b.client.from('map_views').select('views').eq('profile_id', a.id);
+	check("Others cannot read someone's view counts", !peek.error && peek.data.length === 0);
+	check(
+		'Visitors cannot write view rows directly',
+		!!(await anonViewer.from('map_views').insert({ profile_id: a.id, views: 999 })).error
+	);
+
 	const anon = createClient(url, anonKey);
 	const pub = await anon.from('spots').select('id, name').eq('id', spotId);
 	check(

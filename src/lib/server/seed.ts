@@ -130,11 +130,13 @@ export const seedMaps: Record<string, FoodMap> = {
 			handle: 'demo',
 			displayName: 'Demo',
 			avatarUrl: null,
+			avatarPath: null,
 			bio: 'Dosa first, questions later.',
 			instagram: null,
 			theme: 'namma-pop'
 		},
 		spots: seedSpots.map(toSpot),
+		lists: [],
 		customCategories: [
 			{ id: 'military', name: 'Military hotels', slug: 'military-hotels', emoji: '🍖' }
 		]

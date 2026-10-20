@@ -150,12 +150,41 @@ try {
 	step('pinned an unlisted place at my exact location');
 
 	// Profile: paste a full Instagram link; the map shows a follow button for it.
-	await page.click('text=· your map');
+	await page.click('button[aria-expanded]');
 	await page.click('text=Edit profile & Instagram');
 	await page.fill('input[placeholder^="@yourname"]', 'https://www.instagram.com/blr.eats_test/');
 	await page.click('button:has-text("Save")');
-	await page.getByText('Profile saved').waitFor({ timeout: 15000 });
+	await page
+		.getByRole('dialog', { name: 'Your profile' })
+		.waitFor({ state: 'detached', timeout: 30000 });
 	step('saved an Instagram link in the profile');
+
+	// Profile photo and bio.
+	await page.click('button[aria-expanded]');
+	await page.click('text=Edit profile & Instagram');
+	await page.setInputFiles('[role=dialog] input[type=file]', [photo('#06D6A0', 'me')]);
+	await page.fill('input[placeholder^="Dosa first"]', 'Testing every dosa in town.');
+	await page.click('button:has-text("Save")');
+	await page
+		.getByRole('dialog', { name: 'Your profile' })
+		.waitFor({ state: 'detached', timeout: 30000 });
+	step('uploaded a profile photo and bio');
+
+	// A hand-made list, then put a spot in it from the spot's editor.
+	await page.click('button[aria-expanded]');
+	await page.click('text=⭐ Your lists');
+	await page.click('button:has-text("Date night")');
+	await page.click('[role=dialog] form button:has-text("Add")');
+	await page.locator('[role=dialog] li', { hasText: 'Date night' }).waitFor({ timeout: 15000 });
+	await page.click('[role=dialog] button.sticker[aria-label="Close"]');
+	await page
+		.locator('[data-id] article', { hasText: 'Corner House' })
+		.locator('button[aria-label^="Edit"]')
+		.click();
+	await page.click('[role=dialog] button:has-text("Date night")');
+	await page.click('button:has-text("Save")');
+	await page.getByText('Saved').waitFor({ timeout: 15000 });
+	step('created "Date night" and added Corner House to it');
 
 	const { data: spots } = await admin
 		.from('spots')
@@ -178,6 +207,25 @@ try {
 	if (ig !== 'https://www.instagram.com/blr.eats_test/')
 		throw new Error(`Instagram button href: ${ig}`);
 	step('visitor sees the Instagram button → @blr.eats_test');
+	await visitor.click('button[aria-expanded]');
+	await visitor.getByText('Testing every dosa in town.').waitFor({ timeout: 5000 });
+	step('visitor taps the name chip and sees photo, bio and Follow');
+	await visitor.goto(`${base}/${handle}/date-night`);
+	await visitor.waitForTimeout(4000);
+	const inList = await visitor.locator('[data-id]').count();
+	if (inList !== 1) throw new Error(`/date-night should show 1 spot, showed ${inList}`);
+	await visitor.screenshot({ path: `${out}/e2e-9-list.png` });
+	step('the list link /date-night shows just its spot');
+
+	// The visit above is counted; the owner sees it.
+	await page.reload();
+	await page.getByText(/👀 \d+ views?/).waitFor({ timeout: 15000 });
+	step(
+		`owner sees "${await page
+			.getByText(/👀 \d+ views?/)
+			.first()
+			.textContent()}"`.replace(/\s+/g, ' ')
+	);
 	step(`visitor view of /${handle}`);
 } catch (e) {
 	await shot('error');
@@ -189,6 +237,11 @@ try {
 	// Photos live in storage under <uid>/<spot>/; deleting the user doesn't remove them.
 	const { data: folders } = await admin.storage.from('photos').list(user.id);
 	for (const f of folders ?? []) {
+		// Files at the top (the profile photo) have an id; folders (one per spot) don't.
+		if (f.id) {
+			await admin.storage.from('photos').remove([`${user.id}/${f.name}`]);
+			continue;
+		}
 		const { data: files } = await admin.storage.from('photos').list(`${user.id}/${f.name}`);
 		const paths = (files ?? []).map((x) => `${user.id}/${f.name}/${x.name}`);
 		if (paths.length) await admin.storage.from('photos').remove(paths);

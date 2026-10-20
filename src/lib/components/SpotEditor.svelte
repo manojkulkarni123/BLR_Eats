@@ -11,7 +11,9 @@
 		createCustomCategory,
 		createSpots,
 		deletePhoto,
+		createList,
 		deleteSpot,
+		setSpotLists,
 		updateSpot
 	} from '#lib/spots-client.ts';
 	import type { FoodMap, Spot } from '#lib/types.ts';
@@ -63,6 +65,33 @@
 	let busy = $state(false);
 	let error: string | null = $state(null);
 	let customCategories = $state(untrack(() => [...map.customCategories]));
+
+	// Hand-made lists this spot belongs to.
+	let lists = $state(untrack(() => [...map.lists]));
+	const initialListIds = untrack(() =>
+		initial ? map.lists.filter((l) => l.spotIds.includes(initial.id)).map((l) => l.id) : []
+	);
+	let listIds = $state([...initialListIds]);
+	let newListName = $state('');
+	let addingList = $state(false);
+
+	function toggleList(id: string) {
+		listIds = listIds.includes(id) ? listIds.filter((x) => x !== id) : [...listIds, id];
+	}
+
+	async function addList(e: SubmitEvent) {
+		e.preventDefault();
+		if (!newListName.trim()) return;
+		try {
+			const id = await createList(ownerId, newListName, '⭐');
+			lists = [...lists, { id, name: newListName.trim(), slug: '', emoji: '⭐', spotIds: [] }];
+			listIds = [...listIds, id];
+			newListName = '';
+			addingList = false;
+		} catch {
+			error = 'Couldn’t create that list. Maybe the name is taken';
+		}
+	}
 
 	const photoCount = $derived(keptPhotos.length + newFiles.length);
 
@@ -151,6 +180,7 @@
 				[id] = await createSpots(ownerId, [input], map.spots);
 			}
 			if (newFiles.length) await addPhotos(ownerId, id, newFiles, keptPhotos.length);
+			await setSpotLists(ownerId, id, listIds, initialListIds);
 			await ondone({ savedId: id });
 		} catch (e) {
 			error =
@@ -237,6 +267,45 @@
 					onchange={(v) => (pick = v)}
 					oncreate={newCategory}
 				/>
+			</div>
+
+			<div class="flex flex-col gap-1.5">
+				<span class="font-extrabold"
+					>Add to your lists <span class="font-semibold opacity-50">(optional)</span></span
+				>
+				<div class="flex flex-wrap gap-1.5">
+					{#each lists as list (list.id)}
+						<button
+							type="button"
+							onclick={() => toggleList(list.id)}
+							class="rounded-full border-2 border-ink px-3 py-1 text-sm font-extrabold"
+							class:bg-ink={listIds.includes(list.id)}
+							class:text-paper={listIds.includes(list.id)}
+							class:bg-surface={!listIds.includes(list.id)}
+						>
+							{list.emoji}
+							{list.name}
+						</button>
+					{/each}
+					<button
+						type="button"
+						onclick={() => (addingList = !addingList)}
+						class="rounded-full border-2 border-dashed border-ink bg-surface px-3 py-1 text-sm font-extrabold"
+					>
+						＋ New list
+					</button>
+				</div>
+				{#if addingList}
+					<form onsubmit={addList} class="flex gap-2">
+						<input
+							bind:value={newListName}
+							maxlength="30"
+							placeholder="e.g. Date night, Under ₹300"
+							class="sticker min-w-0 flex-1 rounded-xl bg-surface px-3 py-2 font-semibold outline-none"
+						/>
+						<button class="sticker rounded-xl bg-ink px-3 font-extrabold text-paper">Add</button>
+					</form>
+				{/if}
 			</div>
 
 			<label class="flex flex-col gap-1">

@@ -14,12 +14,26 @@
 		recommendedBy: string;
 		/** The map owner's Instagram username, linked under the recommendation. */
 		instagram?: string | null;
+		/** Hand-made lists this spot is in, linked to their own map views. */
+		lists?: { id: string; name: string; slug: string; emoji: string }[];
+		handle?: string;
 		onclose: () => void;
 		onshare: () => void;
 		onedit?: () => void;
 	};
-	let { spot, emoji, label, swatch, recommendedBy, instagram, onclose, onshare, onedit }: Props =
-		$props();
+	let {
+		spot,
+		emoji,
+		label,
+		swatch,
+		recommendedBy,
+		instagram,
+		lists = [],
+		handle = '',
+		onclose,
+		onshare,
+		onedit
+	}: Props = $props();
 
 	let viewing: number | null = $state(null);
 	let strip: HTMLDivElement | undefined = $state();
@@ -40,6 +54,17 @@
 			</span>
 			<span class="opacity-70">📍 {spot.area || 'Bangalore'}</span>
 		</div>
+		{#if lists.length}
+			<div class="-mt-2 flex flex-wrap gap-1.5">
+				{#each lists as list (list.id)}
+					<a
+						href="/{handle}/{list.slug}"
+						class="rounded-full border-2 border-dashed border-ink bg-surface px-3 py-0.5 text-sm font-extrabold"
+						>{list.emoji} {list.name}</a
+					>
+				{/each}
+			</div>
+		{/if}
 
 		{#if spot.photos.length}
 			<div class="relative">

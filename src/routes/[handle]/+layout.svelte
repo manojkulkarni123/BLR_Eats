@@ -11,6 +11,7 @@
 <MapScreen
 	map={data.map}
 	me={data.me}
+	stats={data.stats}
 	sliceSlug={(page.params as { slice?: string }).slice ?? null}
 	spotSlug={(page.params as { slug?: string }).slug ?? null}
 />

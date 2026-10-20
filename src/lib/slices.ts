@@ -11,6 +11,17 @@ export function resolveSlice(map: FoodMap, slug: string): Slice | null {
 	if (custom) {
 		return { kind: 'custom', slug, label: custom.name, emoji: custom.emoji, id: custom.id };
 	}
+	const list = map.lists.find((l) => l.slug === slug);
+	if (list) {
+		return {
+			kind: 'list',
+			slug,
+			label: list.name,
+			emoji: list.emoji,
+			id: list.id,
+			spotIds: list.spotIds
+		};
+	}
 	const spot = map.spots.find((s) => s.areaSlug === slug);
 	if (spot) return { kind: 'area', slug, label: spot.area, emoji: '📍' };
 	return null;
@@ -23,6 +34,8 @@ export function spotsInSlice(spots: Spot[], slice: Slice | null): Spot[] {
 			return spots.filter((s) => s.category === slice.key);
 		case 'custom':
 			return spots.filter((s) => s.customCategoryId === slice.id);
+		case 'list':
+			return spots.filter((s) => slice.spotIds.includes(s.id));
 		case 'area':
 			return spots.filter((s) => s.areaSlug === slice.slug);
 	}
@@ -41,13 +54,19 @@ export function availableSlices(map: FoodMap): { slice: Slice; count: number }[]
 		.filter((s) => s.count > 0)
 		.sort(byCount);
 
+	// Hand-made lists first: they're the owner's own picks.
+	const lists = map.lists
+		.map((l) => resolveSlice(map, l.slug)!)
+		.map((slice) => ({ slice, count: count(slice) }))
+		.filter((s) => s.count > 0);
+
 	const areaSlugs = [...new Set(map.spots.map((s) => s.areaSlug))];
 	const areas = areaSlugs
 		.map((slug) => resolveSlice(map, slug)!)
 		.map((slice) => ({ slice, count: count(slice) }))
 		.sort(byCount);
 
-	return [...categories, ...areas];
+	return [...lists, ...categories, ...areas];
 }
 
 /** Emoji shown on a spot's pin and card. */

@@ -2,17 +2,29 @@
 	import { untrack } from 'svelte';
 	import Sheet from './Sheet.svelte';
 	import { parseInstagram } from '#lib/instagram.ts';
-	import { updateProfile } from '#lib/spots-client.ts';
+	import { updateProfile, uploadAvatar } from '#lib/spots-client.ts';
 	import type { Profile } from '#lib/types.ts';
 
 	type Props = { profile: Profile; onclose: () => void; ondone: () => Promise<void> };
 	let { profile, onclose, ondone }: Props = $props();
 
+	const MAX_BIO = 120;
 	const initial = untrack(() => profile);
 	let name = $state(initial.displayName);
+	let bio = $state(initial.bio ?? '');
 	let instagram = $state(initial.instagram ? `@${initial.instagram}` : '');
+	let photo: File | null = $state(null);
+	let preview: string | null = $state(initial.avatarUrl);
 	let busy = $state(false);
 	let error: string | null = $state(null);
+
+	function onPhoto(e: Event) {
+		const input = e.currentTarget as HTMLInputElement;
+		const file = input.files?.[0];
+		if (!file) return;
+		photo = file;
+		preview = URL.createObjectURL(file);
+	}
 
 	async function save() {
 		const username = parseInstagram(instagram);
@@ -22,7 +34,15 @@
 		busy = true;
 		error = null;
 		try {
-			await updateProfile(profile.id, { display_name: name.trim(), instagram: username });
+			const avatar_path = photo
+				? await uploadAvatar(profile.id, photo, profile.avatarPath)
+				: profile.avatarPath;
+			await updateProfile(profile.id, {
+				display_name: name.trim(),
+				bio: bio.trim() || null,
+				instagram: username,
+				avatar_path
+			});
 			await ondone();
 		} catch {
 			error = 'Couldn’t save. Try again';
@@ -33,6 +53,20 @@
 
 <Sheet title="Your profile" {onclose}>
 	<div class="flex flex-col gap-4">
+		<label class="flex cursor-pointer items-center gap-4">
+			{#if preview}
+				<img src={preview} alt="" class="sticker size-20 rounded-full object-cover" />
+			{:else}
+				<span
+					class="sticker grid size-20 place-items-center rounded-full bg-accent text-3xl font-extrabold text-surface"
+				>
+					{name.slice(0, 1).toUpperCase() || '?'}
+				</span>
+			{/if}
+			<span class="font-extrabold underline">{preview ? 'Change photo' : 'Add a photo'}</span>
+			<input type="file" accept="image/*" class="sr-only" onchange={onPhoto} />
+		</label>
+
 		<label class="flex flex-col gap-1">
 			<span class="font-extrabold">Your name</span>
 			<input
@@ -41,6 +75,19 @@
 				class="sticker rounded-2xl bg-surface px-4 py-2.5 text-lg font-semibold outline-none"
 			/>
 		</label>
+
+		<label class="flex flex-col gap-1">
+			<span class="font-extrabold"
+				>Bio <span class="font-semibold opacity-50">(optional)</span></span
+			>
+			<input
+				bind:value={bio}
+				maxlength={MAX_BIO}
+				placeholder="Dosa first, questions later."
+				class="sticker rounded-2xl bg-surface px-4 py-2.5 text-lg font-semibold outline-none"
+			/>
+		</label>
+
 		<label class="flex flex-col gap-1">
 			<span class="font-extrabold"
 				>Instagram <span class="font-semibold opacity-50">(optional)</span></span
