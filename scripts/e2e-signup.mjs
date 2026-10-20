@@ -42,8 +42,8 @@ try {
 
 	for (const q of ['CTR Malleswaram', 'Meghana Foods', 'Toit Indiranagar']) {
 		await page.fill('input[placeholder^="Search a place"]', q);
-		await page.locator('ul li button').first().waitFor({ timeout: 10000 });
-		await page.locator('ul li button').first().click();
+		await page.locator('li button', { hasText: '＋' }).first().waitFor({ timeout: 10000 });
+		await page.locator('li button', { hasText: '＋' }).first().click();
 		await page.waitForTimeout(300);
 	}
 	await shot('2-top-spots');
@@ -58,11 +58,15 @@ try {
 	await page.click('button:has-text("Look around first")');
 	await page.waitForTimeout(2500);
 	await shot('4-my-map');
+	// Regression: pins added to an empty map must draw without a reload.
+	const pins = await page.locator('.pin').count();
+	if (pins === 0) throw new Error('no pins drawn after adding the first spots');
+	step(`${pins} pin(s) drawn after first add`);
 
 	await page.click('button:has-text("＋ Add spot")');
 	await page.fill('input[placeholder^="Search a place"]', 'Corner House');
-	await page.locator('ul li button').first().waitFor({ timeout: 10000 });
-	await page.locator('ul li button').first().click();
+	await page.locator('li button', { hasText: '＋' }).first().waitFor({ timeout: 10000 });
+	await page.locator('li button', { hasText: '＋' }).first().click();
 	await page.fill('textarea', 'Death by Chocolate. Non-negotiable.');
 	await shot('5-add-spot');
 	await page.click('button:has-text("Add to my map")');

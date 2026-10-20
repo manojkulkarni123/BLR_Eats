@@ -148,8 +148,18 @@
 		);
 	}
 
+	// What a pin's look and position depend on, so edits redraw it too (not just adds and removes).
+	const pinsKey = (list: Spot[]) =>
+		list.map((s) => `${s.id}:${s.category}:${s.customCategoryId}:${s.lat}:${s.lng}`).join(',');
+	const frameKey = (list: Spot[]) => list.map((s) => s.id).join(',');
+	// The sets drawn and framed when the map was created; `null` until then.
+	let lastSpotsKey: string | null = null;
+	let lastFrameKey: string | null = null;
+
 	onMount(() => {
 		let cancelled = false;
+		lastSpotsKey = pinsKey(spots);
+		lastFrameKey = frameKey(frame);
 		(async () => {
 			const [maplibre, worker] = await Promise.all([
 				import('maplibre-gl'),
@@ -191,14 +201,11 @@
 		};
 	});
 
-	// New set of pins (a filter changed): rebuild clusters and pop them in again.
-	let lastSpotsKey = '';
+	// Pins changed (filter, add, edit, delete): rebuild clusters and pop them in again.
 	$effect(() => {
-		const key = spots.map((s) => s.id).join(',');
+		const key = pinsKey(spots);
 		if (!map || key === lastSpotsKey) return;
-		const firstRun = lastSpotsKey === '';
 		lastSpotsKey = key;
-		if (firstRun) return;
 		loadIndex(spots).then(() => {
 			for (const { marker } of markers.values()) marker.remove();
 			markers.clear();
@@ -207,13 +214,11 @@
 		});
 	});
 
-	let lastFrameKey = '';
 	$effect(() => {
-		const key = frame.map((s) => s.id).join(',');
+		const key = frameKey(frame);
 		if (!map || key === lastFrameKey) return;
-		const firstRun = lastFrameKey === '';
 		lastFrameKey = key;
-		if (!firstRun) frameSpots(frame, true);
+		frameSpots(frame, true);
 	});
 
 	$effect(() => {
