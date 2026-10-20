@@ -1,12 +1,13 @@
 <script lang="ts">
 	import { goto, refreshAll } from '$app/navigation';
 	import { page } from '$app/state';
-	import { onMount, tick } from 'svelte';
+	import { onMount, tick, untrack } from 'svelte';
 	import MapView from './MapView.svelte';
 	import SpotCard from './SpotCard.svelte';
 	import FilterChips from './FilterChips.svelte';
 	import SpotEditor from './SpotEditor.svelte';
 	import TopSpotsSheet from './TopSpotsSheet.svelte';
+	import SpotSheet from './SpotSheet.svelte';
 	import { getTheme, swatchFor } from '#lib/theme.ts';
 	import {
 		availableSlices,
@@ -34,9 +35,33 @@
 	const name = $derived(map.profile.displayName);
 	const handle = $derived(map.profile.handle);
 	const slice = $derived(sliceSlug ? resolveSlice(map, sliceSlug) : null);
-	const visible = $derived(spotsInSlice(map.spots, slice));
+	// Viewer search narrows what's on screen: every word must match the name, area,
+	// category or the recommendation itself ("filter coffee" finds spots whose tip says so).
+	let query = $state('');
+	const words = $derived(query.trim().toLowerCase().split(/\s+/).filter(Boolean));
+	const inSlice = $derived(spotsInSlice(map.spots, slice));
+	const visible = $derived(
+		words.length
+			? inSlice.filter((s) => {
+					const hay = [s.name, s.area, spotCategoryLabel(map, s), s.recommendation ?? '']
+						.join(' ')
+						.toLowerCase();
+					return words.every((w) => hay.includes(w));
+				})
+			: inSlice
+	);
 	const openSpot = $derived(spotSlug ? (map.spots.find((s) => s.slug === spotSlug) ?? null) : null);
-	const frame = $derived(openSpot ? [openSpot] : visible);
+	// A shared spot link opens framed on that spot with its pop-up; after that the map frames what's visible.
+	let directSlug: string | null = $state(untrack(() => spotSlug));
+	const frame = $derived(openSpot && openSpot.slug === directSlug ? [openSpot] : visible);
+	// The spot pop-up: opened from a card (a shallow history entry, so Back closes it) or a shared link.
+	const sheetSpot = $derived(
+		page.state.spot
+			? (map.spots.find((s) => s.id === page.state.spot) ?? null)
+			: openSpot && openSpot.slug === directSlug
+				? openSpot
+				: null
+	);
 	const slices = $derived(availableSlices(map));
 
 	let selectedId: string | null = $state(null);
@@ -51,6 +76,34 @@
 	let addingTop = $state(false);
 	let menuOpen = $state(false);
 	let celebrate: number | null = $state(null);
+
+	// Where the map is looking: biases place search, and is where a dropped pin lands.
+	let viewCenter = $state({ lat: 12.9716, lng: 77.5946 });
+	let picking: ((at: { lat: number; lng: number } | null) => void) | null = $state(null);
+
+	function pickOnMap() {
+		return new Promise<{ lat: number; lng: number } | null>((resolve) => {
+			picking = (at) => {
+				picking = null;
+				resolve(at);
+			};
+		});
+	}
+
+	async function openSheet(spot: Spot) {
+		selectedId = spot.id;
+		await goto(page.url.href, { state: { spot: spot.id }, shallow: true });
+		// After the pop-up is open, so the camera keeps the spot above it.
+		moveCamera(spot.id);
+	}
+
+	function closeSheet() {
+		if (page.state.spot) history.back();
+		else {
+			directSlug = null;
+			goto(`/${handle}`, { replace: true, reset: false });
+		}
+	}
 
 	// Viewers: the "Make your own map" button grows after they've browsed a few spots.
 	// Plain Set on purpose: read only inside the effect below, never rendered.
@@ -147,7 +200,7 @@
 
 	// The Share button shares whatever is on screen.
 	function shareScreen() {
-		if (openSpot) return shareSpot(openSpot);
+		if (sheetSpot) return shareSpot(sheetSpot);
 		if (slice) {
 			const title = `${name}'s ${slice.label} spots in Bangalore`;
 			return share(title, `${title} · ${visible.length} spots`, `/${handle}/${slice.slug}`);
@@ -207,6 +260,8 @@
 		{userLocation}
 		onselect={selectFromMap}
 		onready={() => (mapReady = true)}
+		onmove={(c) => (viewCenter = c)}
+		sheetOpen={!!sheetSpot}
 	/>
 
 	<!-- Header renders on the server, so something colourful shows before the map loads. -->
@@ -239,7 +294,9 @@
 						{name}'s {slice ? slice.label : 'Bangalore'}
 					</span>
 					<span class="block text-xs font-semibold opacity-70">
-						{slice ? visible.length : map.spots.length} spots{isOwner ? ' · your map ▾' : ''}
+						{slice || words.length ? visible.length : map.spots.length} spots{isOwner
+							? ' · your map ▾'
+							: ''}
 					</span>
 				</span>
 			</button>
@@ -280,7 +337,14 @@
 
 		{#if map.spots.length}
 			<div class="pointer-events-auto">
-				<FilterChips {slices} total={map.spots.length} active={slice?.slug ?? null} onpick={pick} />
+				<FilterChips
+					{slices}
+					total={map.spots.length}
+					active={slice?.slug ?? null}
+					onpick={pick}
+					{query}
+					onquery={(q) => (query = q)}
+				/>
 			</div>
 		{/if}
 	</header>
@@ -354,16 +418,53 @@
 					label={spotCategoryLabel(map, spot)}
 					swatch={swatchFor(theme, spot.category)}
 					selected={spot.id === selectedId}
-					onfocus={() => {
-						selectedId = spot.id;
-						moveCamera(spot.id);
-					}}
+					onfocus={() => openSheet(spot)}
 					onshare={() => shareSpot(spot)}
 					onedit={isOwner ? () => (editing = spot) : undefined}
 				/>
 			</div>
 		{/each}
+		{#if words.length && visible.length === 0}
+			<div class="h-[200px] w-[82vw] max-w-[340px] flex-none snap-center">
+				<div class="sticker grid h-full place-items-center rounded-3xl bg-surface p-6 text-center">
+					<p class="text-lg font-extrabold">
+						Nothing matches “{query.trim()}”.<br /><span class="font-semibold opacity-70"
+							>Try a dish, an area or a cuisine.</span
+						>
+					</p>
+				</div>
+			</div>
+		{/if}
 	</div>
+
+	{#if picking}
+		<!-- Drop a pin: move the map under the fixed pin, then confirm. -->
+		<div class="pointer-events-none absolute inset-0 z-30">
+			<div
+				class="sticker pointer-events-auto absolute inset-x-4 top-[max(16px,env(safe-area-inset-top))] rounded-2xl bg-surface px-4 py-3 text-center font-extrabold"
+			>
+				Move the map so the pin sits on the place
+			</div>
+			<span
+				class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-full text-5xl drop-shadow-[3px_3px_0_var(--ink)]"
+				aria-hidden="true">📍</span
+			>
+			<div
+				class="pointer-events-auto absolute inset-x-4 bottom-[max(16px,env(safe-area-inset-bottom))] flex gap-2"
+			>
+				<button
+					type="button"
+					onclick={() => picking?.(null)}
+					class="sticker rounded-full bg-surface px-5 py-3 font-extrabold">Cancel</button
+				>
+				<button
+					type="button"
+					onclick={() => picking?.(viewCenter)}
+					class="sticker flex-1 rounded-full bg-sun py-3 text-lg font-extrabold">Pin it here</button
+				>
+			</div>
+		</div>
+	{/if}
 
 	{#if celebrate !== null}
 		<div class="absolute inset-x-6 top-1/2 z-20 mx-auto max-w-sm -translate-y-1/2">
@@ -401,17 +502,46 @@
 	{/if}
 </main>
 
-{#if isOwner && me && editing}
-	<SpotEditor
-		{map}
-		ownerId={me.id}
-		spot={editing === 'new' ? null : editing}
-		onclose={() => (editing = null)}
-		ondone={afterEdit}
+{#if sheetSpot}
+	{@const spot = sheetSpot}
+	<SpotSheet
+		{spot}
+		emoji={spotEmoji(map, spot)}
+		label={spotCategoryLabel(map, spot)}
+		swatch={swatchFor(theme, spot.category)}
+		recommendedBy={name}
+		onclose={closeSheet}
+		onshare={() => shareSpot(spot)}
+		onedit={isOwner
+			? () => {
+					closeSheet();
+					editing = spot;
+				}
+			: undefined}
 	/>
 {/if}
+{#if isOwner && me && editing}
+	<!-- Kept mounted (just hidden) while dropping a pin, so the form keeps its state. -->
+	<div class:hidden={picking}>
+		<SpotEditor
+			{map}
+			ownerId={me.id}
+			spot={editing === 'new' ? null : editing}
+			near={viewCenter}
+			onpickonmap={pickOnMap}
+			onclose={() => (editing = null)}
+			ondone={afterEdit}
+		/>
+	</div>
+{/if}
 {#if isOwner && me && addingTop}
-	<TopSpotsSheet {map} ownerId={me.id} onclose={() => (addingTop = false)} ondone={afterTop} />
+	<TopSpotsSheet
+		{map}
+		ownerId={me.id}
+		near={viewCenter}
+		onclose={() => (addingTop = false)}
+		ondone={afterTop}
+	/>
 {/if}
 
 <style>

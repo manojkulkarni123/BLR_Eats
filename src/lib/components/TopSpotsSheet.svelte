@@ -15,8 +15,9 @@
 		ownerId: string;
 		onclose: () => void;
 		ondone: (added: number) => Promise<void>;
+		near?: { lat: number; lng: number };
 	};
-	let { map, ownerId, onclose, ondone }: Props = $props();
+	let { map, ownerId, onclose, ondone, near }: Props = $props();
 
 	type Item = Place & { category: CategoryKey | null; customCategoryId: string | null };
 	let items: Item[] = $state([]);
@@ -77,7 +78,7 @@
 	<p class="mb-3 font-semibold opacity-80">
 		Your go-to places. Type a name, tap it, next one. Photos and tips can come later.
 	</p>
-	<PlaceSearch onpick={add} />
+	<PlaceSearch onpick={add} {near} />
 
 	{#if items.length}
 		<ul class="mt-4 flex flex-col gap-2">

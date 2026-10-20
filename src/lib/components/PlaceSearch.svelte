@@ -2,8 +2,19 @@
 	import { onMount } from 'svelte';
 	import { searchPlaces, type Place } from '#lib/places.ts';
 
-	type Props = { onpick: (place: Place) => void; placeholder?: string; autofocus?: boolean };
-	let { onpick, placeholder = 'Search a place, e.g. CTR', autofocus = true }: Props = $props();
+	type Props = {
+		onpick: (place: Place) => void;
+		/** Bias results towards this point (the map's current view). */
+		near?: { lat: number; lng: number };
+		placeholder?: string;
+		autofocus?: boolean;
+	};
+	let {
+		onpick,
+		near,
+		placeholder = 'Search a place, e.g. CTR',
+		autofocus = true
+	}: Props = $props();
 
 	let query = $state('');
 	let results: Place[] = $state([]);
@@ -27,7 +38,7 @@
 		controller = new AbortController();
 		loading = true;
 		try {
-			results = await searchPlaces(query, controller.signal);
+			results = await searchPlaces(query, near, controller.signal);
 			searched = query.trim().length >= 2;
 		} catch (e) {
 			if (!(e instanceof DOMException && e.name === 'AbortError')) results = [];
@@ -69,11 +80,11 @@
 						onclick={() => pick(place)}
 						class="flex w-full items-center gap-3 rounded-2xl border-2 border-ink/15 bg-surface px-3 py-2 text-left active:bg-sun/40"
 					>
-						<span class="text-xl" aria-hidden="true">📍</span>
+						<span class="text-xl" aria-hidden="true">{place.isFood ? '🍽️' : '📍'}</span>
 						<span class="min-w-0 flex-1">
 							<span class="block truncate font-extrabold">{place.name}</span>
 							<span class="block truncate text-sm font-semibold opacity-60"
-								>{place.area || 'Bangalore'}</span
+								>{[place.street, place.area].filter(Boolean).join(' · ') || 'Bangalore'}</span
 							>
 						</span>
 						<span class="font-extrabold">＋</span>

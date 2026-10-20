@@ -19,10 +19,25 @@
 		userLocation: { lat: number; lng: number } | null;
 		onselect: (id: string) => void;
 		onready?: () => void;
+		/** The map's centre after each move, for place search bias and pin dropping. */
+		onmove?: (centre: { lat: number; lng: number }) => void;
+		/** A spot pop-up covers the lower part of the screen: keep spots above it. */
+		sheetOpen?: boolean;
 	};
 
-	let { theme, spots, frame, emojiFor, selectedId, focus, userLocation, onselect, onready }: Props =
-		$props();
+	let {
+		theme,
+		spots,
+		frame,
+		emojiFor,
+		selectedId,
+		focus,
+		userLocation,
+		onselect,
+		onready,
+		onmove,
+		sheetOpen = false
+	}: Props = $props();
 
 	let container: HTMLDivElement;
 	let map: MlMap | null = $state(null);
@@ -35,8 +50,13 @@
 	let popOrder = 0;
 
 	const reducedMotion = () => matchMedia('(prefers-reduced-motion: reduce)').matches;
-	// Room for the header (top) and the card rail (bottom).
-	const padding = () => ({ top: 150, bottom: 270, left: 48, right: 48 });
+	// Room for the header (top) and the card rail or spot pop-up (bottom).
+	const padding = () => ({
+		top: 150,
+		bottom: sheetOpen ? Math.round(container.clientHeight * 0.6) : 270,
+		left: 48,
+		right: 48
+	});
 
 	function bounds(list: Spot[]) {
 		const lngs = list.map((s) => s.lng);
@@ -175,9 +195,10 @@
 			map = new ml.Map({
 				container,
 				style: buildMapStyle(theme),
-				bounds: first.length > 1 ? bounds(first) : undefined,
-				center: first.length === 1 ? [first[0].lng, first[0].lat] : [77.5946, 12.9716],
-				zoom: first.length === 1 ? 15 : 11,
+				// One spot is a zero-size box: fitting it applies maxZoom and the padding.
+				bounds: first.length ? bounds(first) : undefined,
+				center: [77.5946, 12.9716],
+				zoom: 11,
 				fitBoundsOptions: { padding: padding(), maxZoom: 15 },
 				attributionControl: { compact: true },
 				dragRotate: false,
@@ -193,7 +214,16 @@
 				renderMarkers();
 				onready?.();
 			});
-			map.on('moveend', renderMarkers);
+			// The point under the middle of the screen. Not getCenter(): camera padding shifts that.
+			const reportCentre = () => {
+				const c = map!.unproject([container.clientWidth / 2, container.clientHeight / 2]);
+				onmove?.({ lat: c.lat, lng: c.lng });
+			};
+			map.on('load', reportCentre);
+			map.on('moveend', () => {
+				renderMarkers();
+				reportCentre();
+			});
 		})();
 		return () => {
 			cancelled = true;

@@ -3,6 +3,18 @@
 // Usage: node --env-file=.env scripts/e2e-signup.mjs <outDir>
 import { chromium, devices } from 'playwright-core';
 import { createClient } from '@supabase/supabase-js';
+import { Resvg } from '@resvg/resvg-js';
+
+// Two test photos, drawn on the fly.
+const photo = (fill, label) => ({
+	name: `${label}.png`,
+	mimeType: 'image/png',
+	buffer: new Resvg(
+		`<svg xmlns='http://www.w3.org/2000/svg' width='1200' height='900'><rect width='1200' height='900' fill='${fill}'/><circle cx='600' cy='450' r='260' fill='#fff3d6'/></svg>`
+	)
+		.render()
+		.asPng()
+});
 
 const out = process.argv[2] ?? '.';
 const base = process.env.BASE_URL ?? 'http://localhost:5173';
@@ -68,12 +80,44 @@ try {
 	await page.locator('li button', { hasText: '＋' }).first().waitFor({ timeout: 10000 });
 	await page.locator('li button', { hasText: '＋' }).first().click();
 	await page.fill('textarea', 'Death by Chocolate. Non-negotiable.');
+	await page.setInputFiles('input[type=file]', [photo('#FF3D7F', 'one'), photo('#3A86FF', 'two')]);
 	await shot('5-add-spot');
 	await page.click('button:has-text("Add to my map")');
 	await page.getByText(/Spot #\d+ added/).waitFor({ timeout: 15000 });
 	await page.waitForTimeout(1500);
 	await shot('6-added');
-	step('added a single spot with a recommendation');
+	step('added a single spot with a recommendation and 2 photos');
+
+	// The spot pop-up shows every photo; tapping one opens the full-screen viewer.
+	await page
+		.locator('[data-id] article', { hasText: 'Corner House' })
+		.locator('button')
+		.first()
+		.click();
+	await page.getByRole('dialog', { name: 'Corner House' }).waitFor();
+	await page.waitForTimeout(1500);
+	const photosInSheet = await page.locator('[role=dialog] img[alt^="Corner House, photo"]').count();
+	if (photosInSheet !== 2) throw new Error(`expected 2 photos in the pop-up, got ${photosInSheet}`);
+	await shot('6b-sheet');
+	await page.locator('button[aria-label^="View photo 1"]').click();
+	await page.getByRole('dialog', { name: 'Photos' }).waitFor();
+	await shot('6c-fullscreen');
+	await page.click('button[aria-label="Close photos"]');
+	await page.goBack();
+	await page.waitForTimeout(800);
+	if (await page.getByRole('dialog').count()) throw new Error('Back did not close the pop-up');
+	step('pop-up shows both photos, full-screen viewer works, Back closes it');
+
+	// A place search can't find: name it, drop a pin.
+	await page.click('button:has-text("＋ Add spot")');
+	await page.click('text=Can’t find it? Add it by hand');
+	await page.fill('input[placeholder^="What"]', 'Ammi Darshini');
+	await page.click('button:has-text("Drop a pin on the map")');
+	await page.click('button:has-text("Pin it here")');
+	await page.getByText('Nice pick').waitFor({ timeout: 15000 });
+	await page.click('button:has-text("Add to my map")');
+	await page.getByText(/Spot #\d+ added/).waitFor({ timeout: 15000 });
+	step('dropped a pin for a place search could not find');
 
 	const { data: spots } = await admin
 		.from('spots')
@@ -86,6 +130,12 @@ try {
 	await visitor.goto(`${base}/${handle}`);
 	await visitor.waitForTimeout(5000);
 	await visitor.screenshot({ path: `${out}/e2e-7-visitor.png` });
+	await visitor.click('button[aria-label="Search this map"]');
+	await visitor.fill('input[aria-label="Search this map"]', 'chocolate');
+	await visitor.waitForTimeout(800);
+	const hits = await visitor.locator('[data-id]').count();
+	if (hits !== 1) throw new Error(`search "chocolate" should find 1 spot, found ${hits}`);
+	step('visitor search finds a spot by words in its tip');
 	step(`visitor view of /${handle}`);
 } catch (e) {
 	await shot('error');
@@ -94,5 +144,12 @@ try {
 } finally {
 	console.log(errors.length ? `page errors:\n${errors.slice(0, 10).join('\n')}` : 'no page errors');
 	await browser.close();
+	// Photos live in storage under <uid>/<spot>/; deleting the user doesn't remove them.
+	const { data: folders } = await admin.storage.from('photos').list(user.id);
+	for (const f of folders ?? []) {
+		const { data: files } = await admin.storage.from('photos').list(`${user.id}/${f.name}`);
+		const paths = (files ?? []).map((x) => `${user.id}/${f.name}/${x.name}`);
+		if (paths.length) await admin.storage.from('photos').remove(paths);
+	}
 	await admin.auth.admin.deleteUser(user.id);
 }

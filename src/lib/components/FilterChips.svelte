@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { tick } from 'svelte';
 	import type { Slice } from '#lib/types.ts';
 
 	type Props = {
@@ -6,27 +7,63 @@
 		total: number;
 		active: string | null;
 		onpick: (slug: string | null) => void;
+		/** Viewer search inside this map. */
+		query: string;
+		onquery: (q: string) => void;
 	};
 
-	let { slices, total, active, onpick }: Props = $props();
+	let { slices, total, active, onpick, query, onquery }: Props = $props();
+	let searching = $state(false);
+	let input: HTMLInputElement | undefined = $state();
+
+	async function openSearch() {
+		searching = true;
+		await tick();
+		input?.focus();
+	}
+
+	function closeSearch() {
+		searching = false;
+		onquery('');
+	}
 </script>
 
-<nav class="no-scrollbar flex gap-2 overflow-x-auto px-4 pt-1 pb-2" aria-label="Filter spots">
-	<button type="button" class="chip" class:on={active === null} onclick={() => onpick(null)}>
-		All <span class="count">{total}</span>
-	</button>
-	{#each slices as { slice, count } (slice.slug)}
-		<button
-			type="button"
-			class="chip"
-			class:on={active === slice.slug}
-			onclick={() => onpick(slice.slug)}
-		>
-			{slice.emoji}
-			{slice.label} <span class="count">{count}</span>
+{#if searching}
+	<div class="flex items-center gap-2 px-4 pt-1 pb-2">
+		<label class="chip min-w-0 flex-1 cursor-text">
+			<span aria-hidden="true">🔎</span>
+			<input
+				bind:this={input}
+				value={query}
+				oninput={(e) => onquery(e.currentTarget.value)}
+				onkeydown={(e) => e.key === 'Escape' && closeSearch()}
+				placeholder="Search: biryani, Indiranagar, filter coffee…"
+				enterkeyhint="search"
+				aria-label="Search this map"
+				class="min-w-0 flex-1 bg-transparent outline-none"
+			/>
+		</label>
+		<button type="button" class="chip" onclick={closeSearch} aria-label="Close search">✕</button>
+	</div>
+{:else}
+	<nav class="no-scrollbar flex gap-2 overflow-x-auto px-4 pt-1 pb-2" aria-label="Filter spots">
+		<button type="button" class="chip" onclick={openSearch} aria-label="Search this map">🔎</button>
+		<button type="button" class="chip" class:on={active === null} onclick={() => onpick(null)}>
+			All <span class="count">{total}</span>
 		</button>
-	{/each}
-</nav>
+		{#each slices as { slice, count } (slice.slug)}
+			<button
+				type="button"
+				class="chip"
+				class:on={active === slice.slug}
+				onclick={() => onpick(slice.slug)}
+			>
+				{slice.emoji}
+				{slice.label} <span class="count">{count}</span>
+			</button>
+		{/each}
+	</nav>
+{/if}
 
 <style>
 	.chip {
@@ -54,6 +91,14 @@
 		background: var(--ink);
 		color: var(--paper);
 		transform: translateY(-1px);
+	}
+	label.chip {
+		flex: 1;
+		padding-top: 0.45rem;
+		padding-bottom: 0.45rem;
+	}
+	label.chip:active {
+		transform: none;
 	}
 	.count {
 		font-size: 12px;

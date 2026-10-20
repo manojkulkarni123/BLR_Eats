@@ -8,7 +8,10 @@ declare global {
 		}
 		// interface Error {}
 		// interface PageData {}
-		// interface PageState {}
+		interface PageState {
+			/** Id of the spot whose pop-up is open (shallow routing). */
+			spot?: string;
+		}
 		// interface Platform {}
 	}
 }

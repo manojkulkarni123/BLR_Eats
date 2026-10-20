@@ -4,7 +4,8 @@
 	import PlaceSearch from './PlaceSearch.svelte';
 	import CategoryPicker from './CategoryPicker.svelte';
 	import type { CategoryKey } from '#lib/categories.ts';
-	import type { Place } from '#lib/places.ts';
+	import { areaAt, type Place } from '#lib/places.ts';
+	import { MAX_PHOTOS, MAX_TIP } from '#lib/site.ts';
 	import {
 		addPhotos,
 		createCustomCategory,
@@ -23,10 +24,13 @@
 		onclose: () => void;
 		/** Called after a save or delete; the screen reloads the map. */
 		ondone: (result: { savedId?: string; deleted?: boolean }) => Promise<void>;
+		/** Bias place search towards the map's current view. */
+		near?: { lat: number; lng: number };
+		/** Hide the sheet and let the owner drop a pin on the map; null if cancelled. */
+		onpickonmap: () => Promise<{ lat: number; lng: number } | null>;
 	};
 
-	let { map, ownerId, spot = null, onclose, ondone }: Props = $props();
-	const MAX_PHOTOS = 4;
+	let { map, ownerId, spot = null, onclose, ondone, near, onpickonmap }: Props = $props();
 
 	const initial = untrack(() => spot);
 	let place: Place | null = $state(
@@ -36,7 +40,9 @@
 					lat: initial.lat,
 					lng: initial.lng,
 					area: initial.area,
+					street: '',
 					osmId: '',
+					isFood: true,
 					suggestedCategory: null
 				}
 			: null
@@ -61,11 +67,33 @@
 	const photoCount = $derived(keptPhotos.length + newFiles.length);
 
 	function choosePlace(p: Place) {
-		place = manual ? { ...p, name: manualName.trim() || p.name, osmId: '' } : p;
+		place = p;
 		name = place.name;
 		if (!pick.category && !pick.customCategoryId && p.suggestedCategory) {
 			pick = { category: p.suggestedCategory, customCategoryId: null };
 		}
+	}
+
+	// A place search can't find: name it, then drop a pin on the exact spot.
+	async function dropPin() {
+		if (!manualName.trim()) return (error = 'Type the place’s name first');
+		error = null;
+		const at = await onpickonmap();
+		if (!at) return;
+		busy = true;
+		const area = await areaAt(at.lat, at.lng);
+		busy = false;
+		place = {
+			name: manualName.trim(),
+			lat: at.lat,
+			lng: at.lng,
+			area,
+			street: '',
+			osmId: '',
+			isFood: true,
+			suggestedCategory: null
+		};
+		name = place.name;
 	}
 
 	function onFiles(e: Event) {
@@ -147,15 +175,24 @@
 					placeholder="What's the place called?"
 					class="sticker rounded-2xl bg-surface px-4 py-3 text-lg font-semibold outline-none"
 				/>
-				<p class="font-semibold opacity-70">Now find its area or the nearest landmark:</p>
-				<PlaceSearch
-					onpick={choosePlace}
-					placeholder="e.g. Indiranagar 12th Main"
-					autofocus={false}
-				/>
+				<button
+					type="button"
+					disabled={busy}
+					onclick={dropPin}
+					class="sticker rounded-full bg-sun py-3 text-lg font-extrabold disabled:opacity-60"
+				>
+					📍 Drop a pin on the map
+				</button>
+				<button
+					type="button"
+					class="self-start font-extrabold underline"
+					onclick={() => (manual = false)}
+				>
+					Back to search
+				</button>
 			</div>
 		{:else}
-			<PlaceSearch onpick={choosePlace} />
+			<PlaceSearch onpick={choosePlace} {near} />
 			<button type="button" class="mt-4 font-extrabold underline" onclick={() => (manual = true)}>
 				Can’t find it? Add it by hand
 			</button>
@@ -188,16 +225,21 @@
 				>
 				<textarea
 					bind:value={recommendation}
-					maxlength="200"
-					rows="2"
+					maxlength={MAX_TIP}
+					rows="3"
 					placeholder="Benne masala dosa. Go before 9 to beat the queue."
 					class="sticker resize-none rounded-2xl bg-surface px-4 py-2.5 font-semibold outline-none"
 				></textarea>
+				{#if recommendation.length > MAX_TIP - 80}
+					<span class="self-end text-sm font-semibold opacity-60">
+						{recommendation.length}/{MAX_TIP}
+					</span>
+				{/if}
 			</label>
 
 			<div class="flex flex-col gap-1.5">
 				<span class="font-extrabold"
-					>Photos <span class="font-semibold opacity-50">(optional)</span></span
+					>Photos <span class="font-semibold opacity-50">(optional, up to {MAX_PHOTOS})</span></span
 				>
 				<div class="flex flex-wrap gap-2">
 					{#each keptPhotos as p (p.id)}
