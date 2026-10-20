@@ -31,7 +31,14 @@ const browser = await chromium.launch({
 	channel: 'msedge',
 	args: ['--use-angle=swiftshader', '--enable-unsafe-swiftshader']
 });
-const page = await (await browser.newContext({ ...devices['Pixel 7'] })).newPage();
+// Standing on 80 Feet Road, Koramangala, for the "I'm here right now" flow.
+const page = await (
+	await browser.newContext({
+		...devices['Pixel 7'],
+		geolocation: { latitude: 12.9346, longitude: 77.6142 },
+		permissions: ['geolocation']
+	})
+).newPage();
 const errors = [];
 page.on('pageerror', (e) => errors.push(e.message));
 page.on('console', (m) => m.type() === 'error' && errors.push(m.text()));
@@ -118,6 +125,29 @@ try {
 	await page.click('button:has-text("Add to my map")');
 	await page.getByText(/Spot #\d+ added/).waitFor({ timeout: 15000 });
 	step('dropped a pin for a place search could not find');
+
+	// "I'm here right now": nearby food places, nearest first.
+	await page.click('button:has-text("＋ Add spot")');
+	await page.click('button:has-text("I’m here right now")');
+	await page.getByText('Around you, nearest first').waitFor({ timeout: 15000 });
+	await shot('8-around-me');
+	const nearby = await page.locator('li button', { hasText: '＋' }).count();
+	await page.locator('li button', { hasText: '＋' }).first().click();
+	await page.click('button:has-text("Add to my map")');
+	await page.getByText(/Spot #\d+ added/).waitFor({ timeout: 15000 });
+	step(`"I'm here" listed ${nearby} places around me and added the nearest`);
+
+	// Not listed: pin the exact spot I'm standing on.
+	await page.click('button:has-text("＋ Add spot")');
+	await page.click('button:has-text("I’m here right now")');
+	await page.getByText('Not listed? Pin my exact location').waitFor({ timeout: 15000 });
+	await page.click('text=Not listed? Pin my exact location');
+	await page.fill('input[placeholder^="What"]', 'Ravi’s dosa cart');
+	await page.click('button:has-text("Add it where I am now")');
+	await page.getByText('Nice pick').waitFor({ timeout: 15000 });
+	await page.click('button:has-text("Add to my map")');
+	await page.getByText(/Spot #\d+ added/).waitFor({ timeout: 15000 });
+	step('pinned an unlisted place at my exact location');
 
 	const { data: spots } = await admin
 		.from('spots')

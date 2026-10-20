@@ -74,11 +74,19 @@
 		}
 	}
 
-	// A place search can't find: name it, then drop a pin on the exact spot.
-	async function dropPin() {
+	// Where the owner is standing, when they chose "Pin my exact location".
+	let herePoint: { lat: number; lng: number } | null = $state(null);
+
+	function startHere(at: { lat: number; lng: number }) {
+		herePoint = at;
+		manual = true;
+	}
+
+	// A place search can't find: name it, then use where you are or drop a pin on the exact spot.
+	async function dropPin(useHere = false) {
 		if (!manualName.trim()) return (error = 'Type the place’s name first');
 		error = null;
-		const at = await onpickonmap();
+		const at = useHere ? herePoint : await onpickonmap();
 		if (!at) return;
 		busy = true;
 		const area = await areaAt(at.lat, at.lng);
@@ -175,13 +183,25 @@
 					placeholder="What's the place called?"
 					class="sticker rounded-2xl bg-surface px-4 py-3 text-lg font-semibold outline-none"
 				/>
+				{#if herePoint}
+					<button
+						type="button"
+						disabled={busy}
+						onclick={() => dropPin(true)}
+						class="sticker rounded-full bg-sun py-3 text-lg font-extrabold disabled:opacity-60"
+					>
+						📍 Add it where I am now
+					</button>
+				{/if}
 				<button
 					type="button"
 					disabled={busy}
-					onclick={dropPin}
-					class="sticker rounded-full bg-sun py-3 text-lg font-extrabold disabled:opacity-60"
+					onclick={() => dropPin()}
+					class="sticker rounded-full py-3 text-lg font-extrabold disabled:opacity-60"
+					class:bg-sun={!herePoint}
+					class:bg-surface={herePoint}
 				>
-					📍 Drop a pin on the map
+					🗺️ Drop a pin on the map
 				</button>
 				<button
 					type="button"
@@ -192,7 +212,7 @@
 				</button>
 			</div>
 		{:else}
-			<PlaceSearch onpick={choosePlace} {near} />
+			<PlaceSearch onpick={choosePlace} {near} locate onhere={startHere} />
 			<button type="button" class="mt-4 font-extrabold underline" onclick={() => (manual = true)}>
 				Can’t find it? Add it by hand
 			</button>

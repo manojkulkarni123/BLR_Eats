@@ -1,17 +1,22 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
-	import { searchPlaces, type Place } from '#lib/places.ts';
+	import { distanceM, foodNear, searchPlaces, type Place } from '#lib/places.ts';
 
 	type Props = {
 		onpick: (place: Place) => void;
 		/** Bias results towards this point (the map's current view). */
 		near?: { lat: number; lng: number };
+		/** Show "Places around me" (GPS). `onhere` gets the position when the place isn't listed. */
+		locate?: boolean;
+		onhere?: (at: { lat: number; lng: number }) => void;
 		placeholder?: string;
 		autofocus?: boolean;
 	};
 	let {
 		onpick,
 		near,
+		locate = false,
+		onhere,
 		placeholder = 'Search a place, e.g. CTR',
 		autofocus = true
 	}: Props = $props();
@@ -20,6 +25,9 @@
 	let results: Place[] = $state([]);
 	let loading = $state(false);
 	let searched = $state(false);
+	let message: string | null = $state(null);
+	/** Set while showing places around the user's GPS position. */
+	let here: { lat: number; lng: number } | null = $state(null);
 	let input: HTMLInputElement;
 	let timer: ReturnType<typeof setTimeout>;
 	let controller: AbortController | null = null;
@@ -29,6 +37,7 @@
 	});
 
 	function onInput() {
+		here = null;
 		clearTimeout(timer);
 		timer = setTimeout(run, 250);
 	}
@@ -37,6 +46,7 @@
 		controller?.abort();
 		controller = new AbortController();
 		loading = true;
+		message = null;
 		try {
 			results = await searchPlaces(query, near, controller.signal);
 			searched = query.trim().length >= 2;
@@ -47,12 +57,44 @@
 		}
 	}
 
+	function aroundMe() {
+		if (!navigator.geolocation) return (message = 'Location isn’t available on this device');
+		loading = true;
+		message = null;
+		navigator.geolocation.getCurrentPosition(
+			async (p) => {
+				here = { lat: p.coords.latitude, lng: p.coords.longitude };
+				query = '';
+				searched = true;
+				try {
+					results = await foodNear(here);
+				} catch {
+					results = [];
+				}
+				loading = false;
+				if (!results.length) message = 'No food places listed right around you.';
+			},
+			() => {
+				loading = false;
+				message = 'Location is off. Turn it on, or search by name';
+			},
+			{ enableHighAccuracy: true, timeout: 10000, maximumAge: 30000 }
+		);
+	}
+
 	function pick(place: Place) {
 		onpick(place);
 		query = '';
 		results = [];
 		searched = false;
+		here = null;
 		input.focus();
+	}
+
+	function metres(place: Place) {
+		if (!here) return '';
+		const m = distanceM(here, place);
+		return m < 1000 ? `${Math.max(10, Math.round(m / 10) * 10)} m` : `${(m / 1000).toFixed(1)} km`;
 	}
 </script>
 
@@ -71,6 +113,20 @@
 		{#if loading}<span class="animate-spin text-lg" aria-label="Searching">◌</span>{/if}
 	</div>
 
+	{#if locate && !query.trim()}
+		<button
+			type="button"
+			onclick={aroundMe}
+			class="flex items-center justify-center gap-2 rounded-2xl border-2 border-dashed border-ink bg-surface py-2.5 font-extrabold"
+		>
+			📍 I’m here right now: show places around me
+		</button>
+	{/if}
+
+	{#if here && results.length}
+		<p class="px-1 text-sm font-extrabold opacity-60">Around you, nearest first</p>
+	{/if}
+
 	{#if results.length}
 		<ul class="flex flex-col gap-1.5">
 			{#each results as place (place.osmId)}
@@ -84,7 +140,8 @@
 						<span class="min-w-0 flex-1">
 							<span class="block truncate font-extrabold">{place.name}</span>
 							<span class="block truncate text-sm font-semibold opacity-60"
-								>{[place.street, place.area].filter(Boolean).join(' · ') || 'Bangalore'}</span
+								>{[metres(place), place.street, place.area].filter(Boolean).join(' · ') ||
+									'Bangalore'}</span
 							>
 						</span>
 						<span class="font-extrabold">＋</span>
@@ -92,9 +149,21 @@
 				</li>
 			{/each}
 		</ul>
-	{:else if searched && !loading}
+	{:else if searched && !loading && !here}
 		<p class="px-1 font-semibold opacity-70">
 			No match in Bangalore. Try a shorter name or the area too.
 		</p>
+	{/if}
+
+	{#if message}<p class="px-1 font-semibold opacity-70" role="status">{message}</p>{/if}
+
+	{#if here && onhere && !loading}
+		<button
+			type="button"
+			onclick={() => here && onhere?.(here)}
+			class="self-start font-extrabold underline"
+		>
+			Not listed? Pin my exact location
+		</button>
 	{/if}
 </div>

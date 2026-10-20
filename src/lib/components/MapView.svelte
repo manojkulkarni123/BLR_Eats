@@ -206,6 +206,11 @@
 				touchPitch: false
 			});
 			map.touchZoomRotate.disableRotation();
+			// A tile that fails or is cancelled mid-pan (AJAXError) is retried by the map; don't spam
+			// the console with it. Anything else is still worth seeing.
+			map.on('error', (e) => {
+				if (!/AJAXError/.test(String(e.error?.message))) console.error(e.error);
+			});
 			map.on('load', () => {
 				// Start with the credit collapsed to its (i) button; it opens on tap.
 				container
