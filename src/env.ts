@@ -6,6 +6,5 @@ export const variables = defineEnvVars({
 		public: true,
 		static: true,
 		description: 'Supabase publishable key (safe in the browser; RLS protects writes)'
-	},
-	SUPABASE_SECRET_KEY: { description: 'Supabase secret key, server only' }
+	}
 });
