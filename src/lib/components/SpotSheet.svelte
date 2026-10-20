@@ -1,6 +1,10 @@
 <script lang="ts">
 	import { untrack } from 'svelte';
 	import Sheet from './Sheet.svelte';
+	import FoodIcon from './FoodIcon.svelte';
+	import UiIcon from './UiIcon.svelte';
+	import { iconColors, iconKeyFor, type Look } from '#lib/look.ts';
+	import type { Theme } from '#lib/theme.ts';
 	import { directionsUrl } from '#lib/share.ts';
 	import { instagramUrl } from '#lib/instagram.ts';
 	import type { Spot } from '#lib/types.ts';
@@ -12,6 +16,8 @@
 		label: string;
 		swatch: { bg: string; on: string };
 		recommendedBy: string;
+		look?: Look;
+		theme?: Theme;
 		/** The map owner's Instagram username, linked under the recommendation. */
 		instagram?: string | null;
 		/** Hand-made lists this spot is in, linked to their own map views. */
@@ -27,6 +33,8 @@
 		label,
 		swatch,
 		recommendedBy,
+		look = 'pop',
+		theme,
 		instagram,
 		lists = [],
 		handle = '',
@@ -48,11 +56,25 @@
 <Sheet title={spot.name} {onclose}>
 	<div class="flex flex-col gap-4" style="--bg:{swatch.bg};--on:{swatch.on}">
 		<div class="flex flex-wrap items-center gap-2 font-extrabold">
-			<span class="rounded-full border-2 border-ink bg-[var(--bg)] px-3 py-0.5 text-[var(--on)]">
-				{emoji}
+			<span
+				class="inline-flex items-center gap-1.5 rounded-full border-2 border-ink bg-[var(--bg)] px-3 py-0.5 text-[var(--on)]"
+			>
+				{#if look === 'poster' && theme}
+					<FoodIcon
+						kind={iconKeyFor(spot)}
+						colors={iconColors(theme, spot)}
+						size={22}
+						offset={1.6}
+					/>
+				{:else}
+					{emoji}
+				{/if}
 				{label || 'Spot'}
 			</span>
-			<span class="opacity-70">📍 {spot.area || 'Bangalore'}</span>
+			<span class="flex items-center gap-1 opacity-70">
+				{#if look === 'poster'}<UiIcon name="near" size={16} />{:else}📍{/if}
+				{spot.area || 'Bangalore'}
+			</span>
 		</div>
 		{#if lists.length}
 			<div class="-mt-2 flex flex-wrap gap-1.5">
@@ -106,9 +128,16 @@
 			</div>
 		{:else}
 			<div
-				class="grid h-32 place-items-center rounded-3xl border-[2.5px] border-ink bg-[var(--bg)] text-7xl"
+				class="grid h-32 place-items-center rounded-3xl border-[2.5px] border-ink text-7xl"
+				style:background={look === 'poster'
+					? 'color-mix(in srgb, var(--bg) 24%, var(--paper))'
+					: 'var(--bg)'}
 			>
-				<span class="emoji">{emoji}</span>
+				{#if look === 'poster' && theme}
+					<FoodIcon kind={iconKeyFor(spot)} colors={iconColors(theme, spot)} size={104} />
+				{:else}
+					<span class="emoji">{emoji}</span>
+				{/if}
 			</div>
 		{/if}
 
@@ -149,7 +178,9 @@
 				rel="noopener noreferrer"
 				class="sticker flex-1 rounded-full bg-ink py-3 text-center text-lg font-extrabold text-paper"
 			>
-				Take me there →
+				<span class="inline-flex items-center justify-center gap-2"
+					><UiIcon name="directions" size={20} /> Take me there</span
+				>
 			</a>
 			{#if onedit}
 				<button
@@ -158,7 +189,7 @@
 					aria-label="Edit {spot.name}"
 					class="sticker grid size-12 place-items-center rounded-full bg-surface text-xl"
 				>
-					✏️
+					<UiIcon name="edit" size={19} />
 				</button>
 			{/if}
 			<button
@@ -167,7 +198,7 @@
 				aria-label="Share {spot.name}"
 				class="sticker grid size-12 place-items-center rounded-full bg-sun text-xl font-extrabold"
 			>
-				↗
+				<UiIcon name="share" size={20} />
 			</button>
 		</div>
 	{/snippet}

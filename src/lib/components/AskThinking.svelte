@@ -1,8 +1,12 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
+	import FoodIcon from './FoodIcon.svelte';
+	import type { Look } from '#lib/look.ts';
+	import type { Theme } from '#lib/theme.ts';
 
 	// Shown the moment someone asks, so they're never left staring at a still screen.
-	let { owner }: { owner: string } = $props();
+	let { owner, look = 'pop', theme }: { owner: string; look?: Look; theme?: Theme } = $props();
+	const foods = ['south-indian', 'asian', 'biryani'] as const;
 	const steps = $derived([
 		`Reading ${owner}'s tips…`,
 		'Matching your mood…',
@@ -19,9 +23,26 @@
 
 <div class="flex items-center gap-4" role="status" aria-live="polite">
 	<div class="flex gap-1 text-3xl" aria-hidden="true">
-		<span class="bob">🥞</span>
-		<span class="bob" style="animation-delay:150ms">🍜</span>
-		<span class="bob" style="animation-delay:300ms">🍛</span>
+		{#if look === 'poster' && theme}
+			{#each foods as k, i (k)}
+				<span class="bob" style="animation-delay:{i * 150}ms">
+					<FoodIcon
+						kind={k}
+						colors={{
+							spot: theme.categories[k].bg,
+							ink: theme.ui.ink,
+							paper: theme.ui.surface,
+							cream: '#F4D9A0'
+						}}
+						size={38}
+					/>
+				</span>
+			{/each}
+		{:else}
+			<span class="bob">🥞</span>
+			<span class="bob" style="animation-delay:150ms">🍜</span>
+			<span class="bob" style="animation-delay:300ms">🍛</span>
+		{/if}
 	</div>
 	<div class="min-w-0 flex-1">
 		{#key step}

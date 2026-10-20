@@ -82,7 +82,7 @@ try {
 	if (pins === 0) throw new Error('no pins drawn after adding the first spots');
 	step(`${pins} pin(s) drawn after first add`);
 
-	await page.click('button:has-text("＋ Add spot")');
+	await page.click('button:has-text("Add spot")');
 	await page.fill('input[placeholder^="Search a place"]', 'Corner House');
 	await page.locator('li button', { hasText: '＋' }).first().waitFor({ timeout: 10000 });
 	await page.locator('li button', { hasText: '＋' }).first().click();
@@ -116,7 +116,7 @@ try {
 	step('pop-up shows both photos, full-screen viewer works, Back closes it');
 
 	// A place search can't find: name it, drop a pin.
-	await page.click('button:has-text("＋ Add spot")');
+	await page.click('button:has-text("Add spot")');
 	await page.click('text=Can’t find it? Add it by hand');
 	await page.fill('input[placeholder^="What"]', 'Ammi Darshini');
 	await page.click('button:has-text("Drop a pin on the map")');
@@ -127,7 +127,7 @@ try {
 	step('dropped a pin for a place search could not find');
 
 	// "I'm here right now": nearby food places, nearest first.
-	await page.click('button:has-text("＋ Add spot")');
+	await page.click('button:has-text("Add spot")');
 	await page.click('button:has-text("I’m here right now")');
 	await page.getByText('Around you, nearest first').waitFor({ timeout: 15000 });
 	await shot('8-around-me');
@@ -138,7 +138,7 @@ try {
 	step(`"I'm here" listed ${nearby} places around me and added the nearest`);
 
 	// Not listed: pin the exact spot I'm standing on.
-	await page.click('button:has-text("＋ Add spot")');
+	await page.click('button:has-text("Add spot")');
 	await page.click('button:has-text("I’m here right now")');
 	await page.getByText('Not listed? Pin my exact location').waitFor({ timeout: 15000 });
 	await page.click('text=Not listed? Pin my exact location');
@@ -169,6 +169,26 @@ try {
 		.getByRole('dialog', { name: 'Your profile' })
 		.waitFor({ state: 'detached', timeout: 30000 });
 	step('uploaded a profile photo and bio');
+
+	// Switch the map's look to Namma Pop and back: the header changes style each time.
+	const switchLook = async (name) => {
+		await page.click('button[aria-expanded]');
+		await page.click('text=Edit profile & Instagram');
+		await page.click(`button.look-tile:has-text("${name}")`);
+		await page.click('button:has-text("Save")');
+		await page
+			.getByRole('dialog', { name: 'Your profile' })
+			.waitFor({ state: 'detached', timeout: 30000 });
+	};
+	await switchLook('Namma Pop');
+	await page
+		.getByText(/’s Bangalore|'s Bangalore/)
+		.first()
+		.waitFor({ timeout: 10000 });
+	await shot('5b-namma-pop');
+	await switchLook('Bengaluru Poster');
+	await page.locator('.look-poster').first().waitFor({ state: 'attached', timeout: 10000 });
+	step('switched the look to Namma Pop and back to Bengaluru Poster');
 
 	// A hand-made list, then put a spot in it from the spot's editor.
 	await page.click('button[aria-expanded]');
@@ -211,7 +231,7 @@ try {
 	// Ask this map: its own ✨ Ask chip, a thinking card, then an answer from this map only.
 	const closeSearch = visitor.locator('button[aria-label="Close search"]');
 	if (await closeSearch.count()) await closeSearch.click();
-	await visitor.click('button:has-text("✨ Ask")');
+	await visitor.click('button.chip.ask');
 	await visitor.fill('input[aria-label="Ask this map"]', 'something sweet for dessert');
 	await visitor.click('form button[type=submit]:has-text("Ask")');
 	await visitor

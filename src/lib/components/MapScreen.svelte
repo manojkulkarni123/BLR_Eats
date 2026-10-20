@@ -15,7 +15,10 @@
 	import { recordView } from '#lib/spots-client.ts';
 	import InstagramIcon from './InstagramIcon.svelte';
 	import { instagramUrl } from '#lib/instagram.ts';
-	import { getTheme, swatchFor } from '#lib/theme.ts';
+	import { getTheme, swatchFor, themeCssVars } from '#lib/theme.ts';
+	import { lookOf, posterPinMarkup } from '#lib/look.ts';
+	import UiIcon from './UiIcon.svelte';
+	import SpotCardPoster from './SpotCardPoster.svelte';
 	import {
 		availableSlices,
 		resolveSlice,
@@ -52,7 +55,9 @@
 	// One screen for everyone (DECISIONS.md): the owner just gets a few more buttons.
 	const isOwner = $derived(me?.id === map.profile.id);
 	const theme = $derived(getTheme(map.profile.theme));
+	const look = $derived(lookOf(theme));
 	const name = $derived(map.profile.displayName);
+	const possessive = $derived(`${name.split(' ')[0]}’s`);
 	const handle = $derived(map.profile.handle);
 	const slice = $derived(sliceSlug ? resolveSlice(map, sliceSlug) : null);
 	// Viewer search narrows what's on screen: every word must match the name, area,
@@ -348,460 +353,543 @@
 	}
 </script>
 
-<main class="fixed inset-0 overflow-hidden bg-[var(--map-land)]">
-	<MapView
-		{theme}
-		spots={visible}
-		{frame}
-		emojiFor={(s) => spotEmoji(map, s)}
-		{selectedId}
-		{focus}
-		{userLocation}
-		onselect={selectFromMap}
-		onready={() => (mapReady = true)}
-		onmove={(c) => (viewCenter = c)}
-		sheetOpen={!!sheetSpot}
-	/>
+<div class={look === 'poster' ? 'look-poster contents' : 'contents'} style={themeCssVars(theme)}>
+	<main class="fixed inset-0 overflow-hidden bg-[var(--map-land)]" class:grain={look === 'poster'}>
+		<MapView
+			{theme}
+			spots={visible}
+			{frame}
+			emojiFor={(s) => spotEmoji(map, s)}
+			{selectedId}
+			{focus}
+			{userLocation}
+			onselect={selectFromMap}
+			onready={() => (mapReady = true)}
+			onmove={(c) => (viewCenter = c)}
+			sheetOpen={!!sheetSpot}
+			pinMarkup={look === 'poster' ? (s) => posterPinMarkup(theme, s) : undefined}
+		/>
 
-	<!-- Header renders on the server, so something colourful shows before the map loads. -->
-	<header
-		class="pointer-events-none absolute inset-x-0 top-0 z-10 pt-[max(12px,env(safe-area-inset-top))]"
-	>
-		<div class="pointer-events-auto flex items-center gap-2 px-4 pb-2">
-			<button
-				type="button"
-				class="sticker flex min-w-0 items-center gap-2 rounded-full bg-surface py-1 pr-4 pl-1 text-left"
-				onclick={() => (isOwner ? (menuOpen = !menuOpen) : (aboutOpen = !aboutOpen))}
-				aria-expanded={isOwner ? menuOpen : aboutOpen}
-			>
-				{#if map.profile.avatarUrl}
-					<img
-						src={map.profile.avatarUrl}
-						alt=""
-						class="size-9 rounded-full border-2 border-ink object-cover"
-					/>
-				{:else}
-					<span
-						class="grid size-9 flex-none place-items-center rounded-full border-2 border-ink bg-accent text-lg font-extrabold text-surface"
+		<!-- Header renders on the server, so something colourful shows before the map loads. -->
+		<header
+			class="pointer-events-none absolute inset-x-0 top-0 z-10 pt-[max(12px,env(safe-area-inset-top))]"
+			class:poster-head={look === 'poster'}
+		>
+			<div class="pointer-events-auto flex items-center gap-2 px-4 pb-2">
+				{#if look === 'poster'}
+					<button
+						type="button"
+						class="flex min-w-0 items-center gap-2.5 text-left"
+						onclick={() => (isOwner ? (menuOpen = !menuOpen) : (aboutOpen = !aboutOpen))}
+						aria-expanded={isOwner ? menuOpen : aboutOpen}
 					>
-						{name.slice(0, 1).toUpperCase()}
-					</span>
-				{/if}
-				<span class="min-w-0 leading-tight">
-					<span class="block truncate text-[17px] font-extrabold">
-						{name}'s {slice ? slice.label : 'Bangalore'}
-					</span>
-					<span class="block text-xs font-semibold opacity-70">
-						{subtitle}
-					</span>
-				</span>
-			</button>
-			{#if map.profile.instagram}
-				<a
-					href={instagramUrl(map.profile.instagram)}
-					target="_blank"
-					rel="noopener noreferrer"
-					aria-label="{name} on Instagram"
-					title="@{map.profile.instagram} on Instagram"
-					class="sticker ig ml-auto grid size-11 flex-none place-items-center rounded-full text-surface active:translate-y-px"
-				>
-					<InstagramIcon class="size-6" />
-				</a>
-			{/if}
-			{#if map.spots.length}
-				<button
-					type="button"
-					onclick={shareScreen}
-					class="sticker flex-none rounded-full bg-sun px-4 py-2 text-[16px] font-extrabold active:translate-y-px"
-					class:ml-auto={!map.profile.instagram}
-				>
-					Share ↗
-				</button>
-			{/if}
-		</div>
-
-		{#if menuOpen && isOwner}
-			<div
-				class="pointer-events-auto mx-4 mb-2 flex w-60 flex-col overflow-hidden rounded-2xl border-[2.5px] border-ink bg-surface shadow-[3px_3px_0_var(--ink)]"
-			>
-				<button
-					type="button"
-					class="menu-item"
-					onclick={() => ((menuOpen = false), (addingTop = true))}
-				>
-					⚡ Add several spots
-				</button>
-				<button
-					type="button"
-					class="menu-item"
-					onclick={() => ((menuOpen = false), (editing = 'new'))}
-				>
-					＋ Add one spot
-				</button>
-				<button
-					type="button"
-					class="menu-item"
-					onclick={() => ((menuOpen = false), (editingProfile = true))}
-				>
-					✏️ Edit profile & Instagram
-				</button>
-				<button
-					type="button"
-					class="menu-item"
-					onclick={() => ((menuOpen = false), (managingLists = true))}
-				>
-					⭐ Your lists
-				</button>
-				{#if stats}
-					<p class="menu-item opacity-70">
-						👀 {stats.total.toLocaleString('en-IN')} views · {stats.week.toLocaleString('en-IN')} this
-						week
-					</p>
-				{/if}
-				<form method="POST" action="/signout">
-					<button class="menu-item w-full">👋 Sign out</button>
-				</form>
-			</div>
-		{/if}
-
-		{#if aboutOpen && !isOwner}
-			<div
-				class="sticker pointer-events-auto mx-4 mb-2 flex max-w-sm items-center gap-3 rounded-3xl bg-surface p-3"
-			>
-				{#if map.profile.avatarUrl}
-					<img
-						src={map.profile.avatarUrl}
-						alt=""
-						class="size-16 rounded-full border-2 border-ink object-cover"
-					/>
+						{#if map.profile.avatarUrl}
+							<img
+								src={map.profile.avatarUrl}
+								alt=""
+								class="size-11 flex-none rounded-full border-2 border-ink object-cover"
+							/>
+						{:else}
+							<span
+								class="title grid size-11 flex-none place-items-center rounded-full border-2 border-ink bg-accent text-xl font-extrabold text-surface"
+							>
+								{name.slice(0, 1).toUpperCase()}
+							</span>
+						{/if}
+						<span class="min-w-0 leading-none">
+							<span class="block text-[11px] font-extrabold tracking-[0.14em] uppercase"
+								>{possessive}</span
+							>
+							<span class="title block truncate text-[32px] leading-[0.95] font-extrabold">
+								{slice ? slice.label : 'Bengaluru'}
+							</span>
+							<span class="mt-1 block text-xs font-semibold opacity-70">{subtitle}</span>
+						</span>
+					</button>
 				{:else}
-					<span
-						class="grid size-16 flex-none place-items-center rounded-full border-2 border-ink bg-accent text-2xl font-extrabold text-surface"
-						>{name.slice(0, 1).toUpperCase()}</span
+					<button
+						type="button"
+						class="sticker flex min-w-0 items-center gap-2 rounded-full bg-surface py-1 pr-4 pl-1 text-left"
+						onclick={() => (isOwner ? (menuOpen = !menuOpen) : (aboutOpen = !aboutOpen))}
+						aria-expanded={isOwner ? menuOpen : aboutOpen}
 					>
+						{#if map.profile.avatarUrl}
+							<img
+								src={map.profile.avatarUrl}
+								alt=""
+								class="size-9 rounded-full border-2 border-ink object-cover"
+							/>
+						{:else}
+							<span
+								class="grid size-9 flex-none place-items-center rounded-full border-2 border-ink bg-accent text-lg font-extrabold text-surface"
+							>
+								{name.slice(0, 1).toUpperCase()}
+							</span>
+						{/if}
+						<span class="min-w-0 leading-tight">
+							<span class="block truncate text-[17px] font-extrabold">
+								{name}'s {slice ? slice.label : 'Bangalore'}
+							</span>
+							<span class="block text-xs font-semibold opacity-70">
+								{subtitle}
+							</span>
+						</span>
+					</button>
 				{/if}
-				<div class="min-w-0 flex-1">
-					<p class="truncate text-lg font-extrabold">{name}</p>
-					{#if map.profile.bio}<p class="text-sm leading-snug font-semibold opacity-80">
-							{map.profile.bio}
-						</p>{/if}
-					<p class="mt-0.5 text-xs font-extrabold opacity-60">
-						{map.spots.length} spots in Bangalore
-					</p>
-				</div>
 				{#if map.profile.instagram}
 					<a
 						href={instagramUrl(map.profile.instagram)}
 						target="_blank"
 						rel="noopener noreferrer"
-						class="sticker ig flex-none rounded-full px-3 py-1.5 text-sm font-extrabold text-surface"
-						>Follow</a
+						aria-label="{name} on Instagram"
+						title="@{map.profile.instagram} on Instagram"
+						class="sticker ig ml-auto grid size-11 flex-none place-items-center rounded-full text-surface active:translate-y-px"
 					>
+						<InstagramIcon class="size-6" />
+					</a>
+				{/if}
+				{#if map.spots.length}
+					{#if look === 'poster'}
+						<button
+							type="button"
+							onclick={shareScreen}
+							aria-label="Share"
+							class="grid size-11 flex-none place-items-center rounded-full border-2 border-ink bg-ink text-paper active:translate-y-px"
+							class:ml-auto={!map.profile.instagram}
+						>
+							<UiIcon name="share" size={20} />
+						</button>
+					{:else}
+						<button
+							type="button"
+							onclick={shareScreen}
+							class="sticker flex flex-none items-center gap-1.5 rounded-full bg-sun px-4 py-2 text-[16px] font-extrabold active:translate-y-px"
+							class:ml-auto={!map.profile.instagram}
+						>
+							Share <UiIcon name="share" size={18} />
+						</button>
+					{/if}
 				{/if}
 			</div>
-		{/if}
 
-		{#if askOpen}
-			<div class="pointer-events-auto">
-				<AskPanel
-					owner={name}
-					initial={query}
-					{asking}
-					answered={Boolean(answer)}
-					onask={ask}
-					onclose={closeAsk}
-				/>
-			</div>
-		{:else if map.spots.length}
-			<div class="pointer-events-auto">
-				<FilterChips
-					{slices}
-					total={map.spots.length}
-					active={slice?.slug ?? null}
-					onpick={pick}
-					{query}
-					onquery={(q) => (query = q)}
-					onaskopen={askEnabled && map.spots.length >= 2 ? openAsk : undefined}
-				/>
-			</div>
-		{/if}
-	</header>
-
-	{#if askOpen && asking}
-		<div
-			class="sticker pointer-events-auto absolute inset-x-4 top-[calc(150px+env(safe-area-inset-top))] z-10 mx-auto max-w-md rounded-3xl bg-surface p-4"
-		>
-			<p class="mb-3 truncate text-sm font-extrabold opacity-60">“{askedQuestion}”</p>
-			<AskThinking owner={name} />
-		</div>
-	{/if}
-
-	{#if askOpen && answer}
-		<div
-			class="sticker answer pointer-events-auto absolute inset-x-4 top-[calc(150px+env(safe-area-inset-top))] z-10 mx-auto max-h-[calc(100dvh-420px)] max-w-md overflow-y-auto rounded-3xl bg-surface p-4"
-			role="status"
-		>
-			<p class="mb-1 truncate text-sm font-extrabold opacity-60">“{askedQuestion}”</p>
-			<div class="flex items-start gap-2">
-				<p class="flex-1 text-[15px] leading-snug font-semibold">✨ {answer.reply}</p>
-				<button
-					type="button"
-					aria-label="Clear the answer"
-					class="-mt-1 px-1 text-lg font-extrabold opacity-50"
-					onclick={() => (answer = null)}>✕</button
+			{#if menuOpen && isOwner}
+				<div
+					class="pointer-events-auto mx-4 mb-2 flex w-60 flex-col overflow-hidden rounded-2xl border-[2.5px] border-ink bg-surface shadow-[3px_3px_0_var(--ink)]"
 				>
-			</div>
-			{#if picked?.length}
-				<ol class="mt-2 flex flex-col gap-1.5">
-					{#each answer.picks as pick, i (pick.id)}
-						{@const spot = map.spots.find((s) => s.id === pick.id)}
-						{#if spot}
-							<li>
-								<button
-									type="button"
-									class="flex w-full items-start gap-2 rounded-2xl bg-paper px-3 py-2 text-left"
-									onclick={() => openSheet(spot)}
-								>
-									<span class="font-extrabold">{i + 1}.</span>
-									<span class="min-w-0 flex-1 leading-snug">
-										<span class="block font-extrabold">{spotEmoji(map, spot)} {spot.name}</span>
-										<span class="block text-sm font-semibold opacity-75">{pick.why}</span>
-									</span>
-								</button>
-							</li>
-						{/if}
-					{/each}
-				</ol>
+					<button
+						type="button"
+						class="menu-item"
+						onclick={() => ((menuOpen = false), (addingTop = true))}
+					>
+						⚡ Add several spots
+					</button>
+					<button
+						type="button"
+						class="menu-item"
+						onclick={() => ((menuOpen = false), (editing = 'new'))}
+					>
+						＋ Add one spot
+					</button>
+					<button
+						type="button"
+						class="menu-item"
+						onclick={() => ((menuOpen = false), (editingProfile = true))}
+					>
+						✏️ Edit profile & Instagram
+					</button>
+					<button
+						type="button"
+						class="menu-item"
+						onclick={() => ((menuOpen = false), (managingLists = true))}
+					>
+						⭐ Your lists
+					</button>
+					{#if stats}
+						<p class="menu-item opacity-70">
+							👀 {stats.total.toLocaleString('en-IN')} views · {stats.week.toLocaleString('en-IN')} this
+							week
+						</p>
+					{/if}
+					<form method="POST" action="/signout">
+						<button class="menu-item w-full">👋 Sign out</button>
+					</form>
+				</div>
 			{/if}
-			<p class="mt-2 text-xs font-semibold opacity-50">AI picks from {name}'s spots and tips.</p>
-		</div>
-	{/if}
 
-	{#if map.spots.length === 0}
-		<div class="absolute inset-x-6 top-1/2 z-10 mx-auto max-w-sm -translate-y-1/2">
-			<div class="sticker rounded-3xl bg-surface p-6 text-center">
-				<p class="text-5xl">🗺️</p>
-				{#if isOwner}
-					<h2 class="mt-2 text-2xl leading-tight font-extrabold">Your map is waiting</h2>
-					<p class="mt-1 font-semibold opacity-75">
-						Add your go-to places. It takes about two minutes.
+			{#if aboutOpen && !isOwner}
+				<div
+					class="sticker pointer-events-auto mx-4 mb-2 flex max-w-sm items-center gap-3 rounded-3xl bg-surface p-3"
+				>
+					{#if map.profile.avatarUrl}
+						<img
+							src={map.profile.avatarUrl}
+							alt=""
+							class="size-16 rounded-full border-2 border-ink object-cover"
+						/>
+					{:else}
+						<span
+							class="grid size-16 flex-none place-items-center rounded-full border-2 border-ink bg-accent text-2xl font-extrabold text-surface"
+							>{name.slice(0, 1).toUpperCase()}</span
+						>
+					{/if}
+					<div class="min-w-0 flex-1">
+						<p class="truncate text-lg font-extrabold">{name}</p>
+						{#if map.profile.bio}<p class="text-sm leading-snug font-semibold opacity-80">
+								{map.profile.bio}
+							</p>{/if}
+						<p class="mt-0.5 text-xs font-extrabold opacity-60">
+							{map.spots.length} spots in Bangalore
+						</p>
+					</div>
+					{#if map.profile.instagram}
+						<a
+							href={instagramUrl(map.profile.instagram)}
+							target="_blank"
+							rel="noopener noreferrer"
+							class="sticker ig flex-none rounded-full px-3 py-1.5 text-sm font-extrabold text-surface"
+							>Follow</a
+						>
+					{/if}
+				</div>
+			{/if}
+
+			{#if askOpen}
+				<div class="pointer-events-auto">
+					<AskPanel
+						owner={name}
+						initial={query}
+						{asking}
+						answered={Boolean(answer)}
+						onask={ask}
+						onclose={closeAsk}
+						{look}
+					/>
+				</div>
+			{:else if map.spots.length}
+				<div class="pointer-events-auto">
+					<FilterChips
+						{slices}
+						total={map.spots.length}
+						active={slice?.slug ?? null}
+						onpick={pick}
+						{query}
+						onquery={(q) => (query = q)}
+						onaskopen={askEnabled && map.spots.length >= 2 ? openAsk : undefined}
+						{look}
+						{theme}
+					/>
+				</div>
+			{/if}
+		</header>
+
+		{#if askOpen && asking}
+			<div
+				class="sticker pointer-events-auto absolute inset-x-4 top-[calc(150px+env(safe-area-inset-top))] z-10 mx-auto max-w-md rounded-3xl bg-surface p-4"
+			>
+				<p class="mb-3 truncate text-sm font-extrabold opacity-60">“{askedQuestion}”</p>
+				<AskThinking owner={name} {look} {theme} />
+			</div>
+		{/if}
+
+		{#if askOpen && answer}
+			<div
+				class="sticker answer pointer-events-auto absolute inset-x-4 top-[calc(150px+env(safe-area-inset-top))] z-10 mx-auto max-h-[calc(100dvh-420px)] max-w-md overflow-y-auto rounded-3xl bg-surface p-4"
+				role="status"
+			>
+				<p class="mb-1 truncate text-sm font-extrabold opacity-60">“{askedQuestion}”</p>
+				<div class="flex items-start gap-2">
+					<p class="flex-1 text-[15px] leading-snug font-semibold">
+						{#if look === 'pop'}✨{/if}
+						{answer.reply}
 					</p>
 					<button
 						type="button"
-						onclick={() => (addingTop = true)}
-						class="sticker mt-4 w-full rounded-full bg-sun py-3 text-lg font-extrabold"
+						aria-label="Clear the answer"
+						class="-mt-1 px-1 text-lg font-extrabold opacity-50"
+						onclick={() => (answer = null)}>✕</button
 					>
-						Add your top spots →
-					</button>
-				{:else}
-					<h2 class="mt-2 text-2xl leading-tight font-extrabold">
-						{name} hasn't pinned anything yet
-					</h2>
-					<p class="mt-1 font-semibold opacity-75">Check back soon.</p>
+				</div>
+				{#if picked?.length}
+					<ol class="mt-2 flex flex-col gap-1.5">
+						{#each answer.picks as pick, i (pick.id)}
+							{@const spot = map.spots.find((s) => s.id === pick.id)}
+							{#if spot}
+								<li>
+									<button
+										type="button"
+										class="flex w-full items-start gap-2 rounded-2xl bg-paper px-3 py-2 text-left"
+										onclick={() => openSheet(spot)}
+									>
+										<span class="font-extrabold">{i + 1}.</span>
+										<span class="min-w-0 flex-1 leading-snug">
+											<span class="block font-extrabold">{spotEmoji(map, spot)} {spot.name}</span>
+											<span class="block text-sm font-semibold opacity-75">{pick.why}</span>
+										</span>
+									</button>
+								</li>
+							{/if}
+						{/each}
+					</ol>
 				{/if}
+				<p class="mt-2 text-xs font-semibold opacity-50">AI picks from {name}'s spots and tips.</p>
 			</div>
-		</div>
-	{/if}
-
-	<div
-		class="absolute right-4 bottom-[calc(228px+env(safe-area-inset-bottom))] left-4 z-10 flex items-end justify-between gap-2"
-		class:hidden={map.spots.length === 0}
-	>
-		{#if isOwner}
-			<button
-				type="button"
-				onclick={() => (editing = 'new')}
-				class="sticker rounded-full bg-accent px-4 py-2 font-extrabold text-surface active:translate-y-px"
-			>
-				＋ Add spot
-			</button>
-		{:else}
-			<a
-				href={me?.handle ? `/${me.handle}` : '/'}
-				class="sticker cta rounded-full bg-accent font-extrabold text-surface"
-				class:curious
-			>
-				{me?.handle ? '🗺️ My map' : '✨ Make your own map'}
-			</a>
 		{/if}
-		<button
-			type="button"
-			onclick={nearMe}
-			class="sticker rounded-full bg-surface px-3 py-1.5 text-sm font-extrabold active:translate-y-px"
-		>
-			📍 Near me
-		</button>
-	</div>
 
-	<div
-		bind:this={rail}
-		class="rail no-scrollbar absolute inset-x-0 bottom-0 z-10 flex snap-x snap-mandatory gap-3 overflow-x-auto px-[9vw] pt-3 pb-[max(16px,env(safe-area-inset-bottom))]"
-		class:ready={mapReady}
-	>
-		{#each visible as spot (spot.id)}
-			<div data-id={spot.id} class="h-[200px] w-[82vw] max-w-[340px] flex-none snap-center">
-				<SpotCard
-					{spot}
-					emoji={spotEmoji(map, spot)}
-					label={spotCategoryLabel(map, spot)}
-					swatch={swatchFor(theme, spot.category)}
-					selected={spot.id === selectedId}
-					onfocus={() => openSheet(spot)}
-					onshare={() => shareSpot(spot)}
-					onedit={isOwner ? () => (editing = spot) : undefined}
-				/>
-			</div>
-		{/each}
-		{#if words.length && visible.length === 0}
-			<div class="h-[200px] w-[82vw] max-w-[340px] flex-none snap-center">
-				<div class="sticker grid h-full place-items-center rounded-3xl bg-surface p-6 text-center">
-					<div class="text-lg font-extrabold">
-						<p>Nothing matches “{query.trim()}”.</p>
-						{#if askEnabled}
-							<button
-								type="button"
-								onclick={openAsk}
-								class="sticker mt-3 rounded-full bg-accent px-4 py-2 text-base text-surface"
-								>✨ Ask the map instead</button
-							>
-						{:else}
-							<p class="font-semibold opacity-70">Try a dish, an area or a cuisine.</p>
-						{/if}
-					</div>
+		{#if map.spots.length === 0}
+			<div class="absolute inset-x-6 top-1/2 z-10 mx-auto max-w-sm -translate-y-1/2">
+				<div class="sticker rounded-3xl bg-surface p-6 text-center">
+					<p class="text-5xl">🗺️</p>
+					{#if isOwner}
+						<h2 class="mt-2 text-2xl leading-tight font-extrabold">Your map is waiting</h2>
+						<p class="mt-1 font-semibold opacity-75">
+							Add your go-to places. It takes about two minutes.
+						</p>
+						<button
+							type="button"
+							onclick={() => (addingTop = true)}
+							class="sticker mt-4 w-full rounded-full bg-sun py-3 text-lg font-extrabold"
+						>
+							Add your top spots →
+						</button>
+					{:else}
+						<h2 class="mt-2 text-2xl leading-tight font-extrabold">
+							{name} hasn't pinned anything yet
+						</h2>
+						<p class="mt-1 font-semibold opacity-75">Check back soon.</p>
+					{/if}
 				</div>
 			</div>
 		{/if}
-	</div>
 
-	{#if picking}
-		<!-- Drop a pin: move the map under the fixed pin, then confirm. -->
-		<div class="pointer-events-none absolute inset-0 z-30">
-			<div
-				class="sticker pointer-events-auto absolute inset-x-4 top-[max(16px,env(safe-area-inset-top))] rounded-2xl bg-surface px-4 py-3 text-center font-extrabold"
-			>
-				Move the map so the pin sits on the place
-			</div>
-			<span
-				class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-full text-5xl drop-shadow-[3px_3px_0_var(--ink)]"
-				aria-hidden="true">📍</span
-			>
-			<div
-				class="pointer-events-auto absolute inset-x-4 bottom-[max(16px,env(safe-area-inset-bottom))] flex gap-2"
-			>
-				<button
-					type="button"
-					onclick={() => picking?.(null)}
-					class="sticker rounded-full bg-surface px-5 py-3 font-extrabold">Cancel</button
-				>
-				<button
-					type="button"
-					onclick={() => picking?.(viewCenter)}
-					class="sticker flex-1 rounded-full bg-sun py-3 text-lg font-extrabold">Pin it here</button
-				>
-			</div>
-		</div>
-	{/if}
-
-	{#if celebrate !== null}
-		<div class="absolute inset-x-6 top-1/2 z-20 mx-auto max-w-sm -translate-y-1/2">
-			<div class="sticker celebrate rounded-3xl bg-sun p-6 text-center">
-				<p class="text-5xl">🎉</p>
-				<h2 class="mt-2 text-3xl leading-none font-extrabold">Your map has {celebrate} spots</h2>
-				<p class="mt-2 font-semibold">
-					Looks good, right? Send it to someone who keeps asking where to eat.
-				</p>
-				<button
-					type="button"
-					onclick={() => ((celebrate = null), shareScreen())}
-					class="sticker mt-4 w-full rounded-full bg-ink py-3 text-lg font-extrabold text-paper"
-				>
-					Share my map ↗
-				</button>
-				<button
-					type="button"
-					class="mt-3 font-extrabold underline"
-					onclick={() => (celebrate = null)}
-				>
-					Look around first
-				</button>
-			</div>
-		</div>
-	{/if}
-
-	{#if toast}
 		<div
-			class="sticker absolute top-1/2 left-1/2 z-40 -translate-x-1/2 rounded-full bg-ink px-4 py-2 font-extrabold whitespace-nowrap text-paper"
-			role="status"
+			class="absolute right-4 bottom-[calc(228px+env(safe-area-inset-bottom))] left-4 z-10 flex items-end justify-between gap-2"
+			class:hidden={map.spots.length === 0}
 		>
-			{toast}
+			{#if isOwner}
+				<button
+					type="button"
+					onclick={() => (editing = 'new')}
+					class="sticker flex items-center gap-1.5 rounded-full px-4 py-2 font-extrabold active:translate-y-px"
+					class:bg-accent={look === 'pop'}
+					class:text-surface={look === 'pop'}
+					class:bg-ink={look === 'poster'}
+					class:text-paper={look === 'poster'}
+				>
+					<UiIcon name="add" size={18} /> Add spot
+				</button>
+			{:else}
+				<a
+					href={me?.handle ? `/${me.handle}` : '/'}
+					class="sticker cta rounded-full font-extrabold"
+					class:curious
+					class:bg-accent={look === 'pop'}
+					class:text-surface={look === 'pop'}
+					class:bg-ink={look === 'poster'}
+					class:text-paper={look === 'poster'}
+				>
+					{#if look === 'poster'}
+						{me?.handle ? 'My map' : 'Make your own map'}
+					{:else}
+						{me?.handle ? '🗺️ My map' : '✨ Make your own map'}
+					{/if}
+				</a>
+			{/if}
+			<button
+				type="button"
+				onclick={nearMe}
+				class="sticker flex items-center gap-1 rounded-full bg-surface px-3 py-1.5 text-sm font-extrabold active:translate-y-px"
+			>
+				<UiIcon name="near" size={16} /> Near me
+			</button>
+		</div>
+
+		<div
+			bind:this={rail}
+			class="rail no-scrollbar absolute inset-x-0 bottom-0 z-10 flex snap-x snap-mandatory gap-3 overflow-x-auto px-[9vw] pt-3 pb-[max(16px,env(safe-area-inset-bottom))]"
+			class:ready={mapReady}
+		>
+			{#each visible as spot (spot.id)}
+				<div data-id={spot.id} class="h-[200px] w-[82vw] max-w-[340px] flex-none snap-center">
+					{#if look === 'poster'}
+						<SpotCardPoster
+							{spot}
+							label={spotCategoryLabel(map, spot)}
+							{theme}
+							selected={spot.id === selectedId}
+							onfocus={() => openSheet(spot)}
+							onshare={() => shareSpot(spot)}
+							onedit={isOwner ? () => (editing = spot) : undefined}
+						/>
+					{:else}
+						<SpotCard
+							{spot}
+							emoji={spotEmoji(map, spot)}
+							label={spotCategoryLabel(map, spot)}
+							swatch={swatchFor(theme, spot.category)}
+							selected={spot.id === selectedId}
+							onfocus={() => openSheet(spot)}
+							onshare={() => shareSpot(spot)}
+							onedit={isOwner ? () => (editing = spot) : undefined}
+						/>
+					{/if}
+				</div>
+			{/each}
+			{#if words.length && visible.length === 0}
+				<div class="h-[200px] w-[82vw] max-w-[340px] flex-none snap-center">
+					<div
+						class="sticker grid h-full place-items-center rounded-3xl bg-surface p-6 text-center"
+					>
+						<div class="text-lg font-extrabold">
+							<p>Nothing matches “{query.trim()}”.</p>
+							{#if askEnabled}
+								<button
+									type="button"
+									onclick={openAsk}
+									class="sticker mt-3 rounded-full bg-accent px-4 py-2 text-base text-surface"
+									>✨ Ask the map instead</button
+								>
+							{:else}
+								<p class="font-semibold opacity-70">Try a dish, an area or a cuisine.</p>
+							{/if}
+						</div>
+					</div>
+				</div>
+			{/if}
+		</div>
+
+		{#if picking}
+			<!-- Drop a pin: move the map under the fixed pin, then confirm. -->
+			<div class="pointer-events-none absolute inset-0 z-30">
+				<div
+					class="sticker pointer-events-auto absolute inset-x-4 top-[max(16px,env(safe-area-inset-top))] rounded-2xl bg-surface px-4 py-3 text-center font-extrabold"
+				>
+					Move the map so the pin sits on the place
+				</div>
+				<span
+					class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-full text-5xl drop-shadow-[3px_3px_0_var(--ink)]"
+					aria-hidden="true">📍</span
+				>
+				<div
+					class="pointer-events-auto absolute inset-x-4 bottom-[max(16px,env(safe-area-inset-bottom))] flex gap-2"
+				>
+					<button
+						type="button"
+						onclick={() => picking?.(null)}
+						class="sticker rounded-full bg-surface px-5 py-3 font-extrabold">Cancel</button
+					>
+					<button
+						type="button"
+						onclick={() => picking?.(viewCenter)}
+						class="sticker flex-1 rounded-full bg-sun py-3 text-lg font-extrabold"
+						>Pin it here</button
+					>
+				</div>
+			</div>
+		{/if}
+
+		{#if celebrate !== null}
+			<div class="absolute inset-x-6 top-1/2 z-20 mx-auto max-w-sm -translate-y-1/2">
+				<div class="sticker celebrate rounded-3xl bg-sun p-6 text-center">
+					<p class="text-5xl">🎉</p>
+					<h2 class="mt-2 text-3xl leading-none font-extrabold">Your map has {celebrate} spots</h2>
+					<p class="mt-2 font-semibold">
+						Looks good, right? Send it to someone who keeps asking where to eat.
+					</p>
+					<button
+						type="button"
+						onclick={() => ((celebrate = null), shareScreen())}
+						class="sticker mt-4 w-full rounded-full bg-ink py-3 text-lg font-extrabold text-paper"
+					>
+						Share my map ↗
+					</button>
+					<button
+						type="button"
+						class="mt-3 font-extrabold underline"
+						onclick={() => (celebrate = null)}
+					>
+						Look around first
+					</button>
+				</div>
+			</div>
+		{/if}
+
+		{#if toast}
+			<div
+				class="sticker absolute top-1/2 left-1/2 z-40 -translate-x-1/2 rounded-full bg-ink px-4 py-2 font-extrabold whitespace-nowrap text-paper"
+				role="status"
+			>
+				{toast}
+			</div>
+		{/if}
+	</main>
+
+	{#if sheetSpot}
+		{@const spot = sheetSpot}
+		<SpotSheet
+			{spot}
+			emoji={spotEmoji(map, spot)}
+			label={spotCategoryLabel(map, spot)}
+			swatch={swatchFor(theme, spot.category)}
+			{look}
+			{theme}
+			recommendedBy={name}
+			instagram={map.profile.instagram}
+			lists={map.lists.filter((l) => l.spotIds.includes(spot.id))}
+			{handle}
+			onclose={closeSheet}
+			onshare={() => shareSpot(spot)}
+			onedit={isOwner
+				? () => {
+						closeSheet();
+						editing = spot;
+					}
+				: undefined}
+		/>
+	{/if}
+	{#if isOwner && me && editing}
+		<!-- Kept mounted (just hidden) while dropping a pin, so the form keeps its state. -->
+		<div class:hidden={picking}>
+			<SpotEditor
+				{map}
+				ownerId={me.id}
+				spot={editing === 'new' ? null : editing}
+				near={viewCenter}
+				onpickonmap={pickOnMap}
+				onclose={() => (editing = null)}
+				ondone={afterEdit}
+			/>
 		</div>
 	{/if}
-</main>
-
-{#if sheetSpot}
-	{@const spot = sheetSpot}
-	<SpotSheet
-		{spot}
-		emoji={spotEmoji(map, spot)}
-		label={spotCategoryLabel(map, spot)}
-		swatch={swatchFor(theme, spot.category)}
-		recommendedBy={name}
-		instagram={map.profile.instagram}
-		lists={map.lists.filter((l) => l.spotIds.includes(spot.id))}
-		{handle}
-		onclose={closeSheet}
-		onshare={() => shareSpot(spot)}
-		onedit={isOwner
-			? () => {
-					closeSheet();
-					editing = spot;
-				}
-			: undefined}
-	/>
-{/if}
-{#if isOwner && me && editing}
-	<!-- Kept mounted (just hidden) while dropping a pin, so the form keeps its state. -->
-	<div class:hidden={picking}>
-		<SpotEditor
+	{#if isOwner && me && managingLists}
+		<ListsSheet
+			ownerId={me.id}
+			{handle}
+			lists={map.lists}
+			onclose={() => (managingLists = false)}
+			onchange={() => refreshAll()}
+		/>
+	{/if}
+	{#if isOwner && editingProfile}
+		<ProfileSheet
+			profile={map.profile}
+			onclose={() => (editingProfile = false)}
+			ondone={async () => {
+				await refreshAll();
+				editingProfile = false;
+				flash('Profile saved');
+			}}
+		/>
+	{/if}
+	{#if isOwner && me && addingTop}
+		<TopSpotsSheet
 			{map}
 			ownerId={me.id}
-			spot={editing === 'new' ? null : editing}
 			near={viewCenter}
-			onpickonmap={pickOnMap}
-			onclose={() => (editing = null)}
-			ondone={afterEdit}
+			onclose={() => (addingTop = false)}
+			ondone={afterTop}
 		/>
-	</div>
-{/if}
-{#if isOwner && me && managingLists}
-	<ListsSheet
-		ownerId={me.id}
-		{handle}
-		lists={map.lists}
-		onclose={() => (managingLists = false)}
-		onchange={() => refreshAll()}
-	/>
-{/if}
-{#if isOwner && editingProfile}
-	<ProfileSheet
-		profile={map.profile}
-		onclose={() => (editingProfile = false)}
-		ondone={async () => {
-			await refreshAll();
-			editingProfile = false;
-			flash('Profile saved');
-		}}
-	/>
-{/if}
-{#if isOwner && me && addingTop}
-	<TopSpotsSheet
-		{map}
-		ownerId={me.id}
-		near={viewCenter}
-		onclose={() => (addingTop = false)}
-		ondone={afterTop}
-	/>
-{/if}
+	{/if}
+</div>
 
 <style>
 	/* Cards rise in after the pins have popped. */
@@ -837,6 +925,11 @@
 	/* Instagram's own warm gradient, so the button reads as Instagram at a glance. */
 	.ig {
 		background: linear-gradient(45deg, #feda75, #fa7e1e 30%, #d62976 60%, #962fbf 85%, #4f5bd5);
+	}
+	/* Poster header: a paper fade so the title reads over the map. */
+	.poster-head {
+		background: linear-gradient(var(--paper) 70%, transparent);
+		padding-bottom: 14px;
 	}
 	.answer {
 		animation: rise 260ms cubic-bezier(0.34, 1.3, 0.64, 1) both;

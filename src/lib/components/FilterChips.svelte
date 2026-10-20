@@ -1,5 +1,10 @@
 <script lang="ts">
 	import { tick } from 'svelte';
+	import FoodIcon from './FoodIcon.svelte';
+	import UiIcon from './UiIcon.svelte';
+	import type { IconKey } from '#lib/icons.ts';
+	import type { Look } from '#lib/look.ts';
+	import type { Theme } from '#lib/theme.ts';
 	import type { Slice } from '#lib/types.ts';
 
 	type Props = {
@@ -12,9 +17,29 @@
 		onquery: (q: string) => void;
 		/** Opens "Ask this map" (AI); absent when it's switched off. */
 		onaskopen?: () => void;
+		look?: Look;
+		theme?: Theme;
 	};
 
-	let { slices, total, active, onpick, query, onquery, onaskopen }: Props = $props();
+	let {
+		slices,
+		total,
+		active,
+		onpick,
+		query,
+		onquery,
+		onaskopen,
+		look = 'pop',
+		theme
+	}: Props = $props();
+
+	const colorsFor = (key: string) =>
+		theme && {
+			spot: theme.categories[key as keyof Theme['categories']]?.bg ?? theme.wildcard.bg,
+			ink: theme.ui.ink,
+			paper: theme.ui.surface,
+			cream: '#F4D9A0'
+		};
 	let searching = $state(false);
 	let input: HTMLInputElement | undefined = $state();
 
@@ -33,7 +58,7 @@
 {#if searching}
 	<div class="flex items-center gap-2 px-4 pt-1 pb-2">
 		<label class="chip min-w-0 flex-1 cursor-text">
-			<span aria-hidden="true">🔎</span>
+			<UiIcon name="search" size={18} />
 			<input
 				bind:this={input}
 				value={query}
@@ -50,9 +75,13 @@
 {:else}
 	<nav class="no-scrollbar flex gap-2 overflow-x-auto px-4 pt-1 pb-2" aria-label="Filter spots">
 		{#if onaskopen}
-			<button type="button" class="chip ask" onclick={onaskopen}>✨ Ask</button>
+			<button type="button" class="chip ask" onclick={onaskopen}>
+				{#if look === 'poster'}<UiIcon name="ask" size={17} /> Ask the map{:else}✨ Ask{/if}
+			</button>
 		{/if}
-		<button type="button" class="chip" onclick={openSearch} aria-label="Search this map">🔎</button>
+		<button type="button" class="chip" onclick={openSearch} aria-label="Search this map"
+			><UiIcon name="search" size={18} /></button
+		>
 		<button type="button" class="chip" class:on={active === null} onclick={() => onpick(null)}>
 			All <span class="count">{total}</span>
 		</button>
@@ -63,7 +92,18 @@
 				class:on={active === slice.slug}
 				onclick={() => onpick(slice.slug)}
 			>
-				{slice.emoji}
+				{#if look === 'poster' && slice.kind === 'category' && theme}
+					<FoodIcon
+						kind={slice.key as IconKey}
+						colors={colorsFor(slice.key)!}
+						size={22}
+						offset={1.6}
+					/>
+				{:else if look === 'poster' && slice.kind === 'area'}
+					<UiIcon name="near" size={15} />
+				{:else}
+					{slice.emoji}
+				{/if}
 				{slice.label} <span class="count">{count}</span>
 			</button>
 		{/each}
@@ -108,6 +148,16 @@
 	.chip.ask {
 		background: linear-gradient(100deg, var(--accent), #8338ec);
 		color: var(--surface);
+	}
+	/* Poster: flat chips, a solid pink "Ask the map". */
+	:global(.look-poster) .chip {
+		border-width: 1.5px;
+		box-shadow: none;
+		font-weight: 700;
+	}
+	:global(.look-poster) .chip.ask {
+		background: var(--accent);
+		color: var(--ink);
 	}
 	.count {
 		font-size: 12px;

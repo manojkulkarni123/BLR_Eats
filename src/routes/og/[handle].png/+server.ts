@@ -16,6 +16,7 @@ export const GET: RequestHandler = async ({ params, url, locals }) => {
 	let title = `${name}'s Bangalore food map`;
 	let subtitle = `${map.spots.length} spots, picked by ${name}`;
 	let spots = map.spots;
+	let heading = 'Bengaluru';
 
 	const spotSlug = url.searchParams.get('spot');
 	const sliceSlug = url.searchParams.get('slice');
@@ -23,6 +24,7 @@ export const GET: RequestHandler = async ({ params, url, locals }) => {
 		const spot = map.spots.find((s) => s.slug === spotSlug);
 		if (!spot) error(404);
 		title = spot.name;
+		heading = spot.name;
 		subtitle = spot.recommendation ?? `${spot.area} · recommended by ${name}`;
 		spots = [spot];
 	} else if (sliceSlug) {
@@ -30,11 +32,13 @@ export const GET: RequestHandler = async ({ params, url, locals }) => {
 		if (!slice) error(404);
 		spots = spotsInSlice(map.spots, slice);
 		title = `${name}'s ${slice.label} spots`;
+		heading = slice.label;
 		subtitle = `${spots.length} ${slice.label} spots in Bangalore`;
 	}
 	if (subtitle.length > 90) subtitle = `${subtitle.slice(0, 87)}…`;
 
-	const png = await renderOg({ map, title, subtitle, spots, emojiFor });
+	const kicker = `${name.split(' ')[0]}’s`;
+	const png = await renderOg({ map, title, subtitle, spots, emojiFor, kicker, heading });
 	return new Response(new Uint8Array(png), {
 		headers: {
 			'content-type': 'image/png',

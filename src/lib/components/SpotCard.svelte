@@ -1,4 +1,5 @@
 <script lang="ts">
+	import UiIcon from './UiIcon.svelte';
 	import type { Spot } from '#lib/types.ts';
 	import { directionsUrl } from '#lib/share.ts';
 
@@ -96,7 +97,9 @@
 			rel="noopener noreferrer"
 			class="sticker flex-1 rounded-full bg-ink py-2 text-center text-[15px] font-extrabold text-paper active:translate-y-px"
 		>
-			Take me there →
+			<span class="inline-flex items-center justify-center gap-1.5"
+				><UiIcon name="directions" size={18} /> Take me there</span
+			>
 		</a>
 		{#if onedit}
 			<button
@@ -105,7 +108,7 @@
 				aria-label="Edit {spot.name}"
 				class="sticker grid size-10 place-items-center rounded-full bg-surface text-lg active:translate-y-px"
 			>
-				✏️
+				<UiIcon name="edit" size={19} />
 			</button>
 		{/if}
 		<button
@@ -114,7 +117,7 @@
 			aria-label="Share {spot.name}"
 			class="sticker grid size-10 place-items-center rounded-full bg-surface text-lg active:translate-y-px"
 		>
-			↗
+			<UiIcon name="share" size={20} />
 		</button>
 	</div>
 </article>

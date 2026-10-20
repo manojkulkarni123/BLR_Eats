@@ -1,6 +1,10 @@
 <script lang="ts">
 	import '@fontsource/baloo-2/latin-600.css';
 	import '@fontsource/baloo-2/latin-800.css';
+	// Bengaluru Poster fonts; browsers only download them on maps that use that look.
+	import '@fontsource-variable/fraunces/full.css';
+	import '@fontsource-variable/fraunces/full-italic.css';
+	import '@fontsource-variable/bricolage-grotesque';
 	import './layout.css';
 	import favicon from '#lib/assets/favicon.svg';
 	import { nammaPop, themeCssVars } from '#lib/theme.ts';

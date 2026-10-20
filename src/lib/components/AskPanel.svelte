@@ -1,5 +1,7 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
+	import UiIcon from './UiIcon.svelte';
+	import type { Look } from '#lib/look.ts';
 
 	// "Ask this map": its own clearly-labelled entry, separate from plain search,
 	// with example questions so people know what it's for.
@@ -11,8 +13,17 @@
 		answered?: boolean;
 		onask: (question: string) => void;
 		onclose: () => void;
+		look?: Look;
 	};
-	let { owner, initial = '', asking, answered = false, onask, onclose }: Props = $props();
+	let {
+		owner,
+		initial = '',
+		asking,
+		answered = false,
+		onask,
+		onclose,
+		look = 'pop'
+	}: Props = $props();
 
 	let question = $state('');
 	let input: HTMLInputElement | undefined = $state();
@@ -38,7 +49,8 @@
 <div class="px-4 pt-1 pb-2">
 	<form onsubmit={submit} class="flex items-center gap-2">
 		<label class="ask-box min-w-0 flex-1">
-			<span aria-hidden="true">✨</span>
+			{#if look === 'poster'}<UiIcon name="ask" size={19} />{:else}<span aria-hidden="true">✨</span
+				>{/if}
 			<input
 				bind:this={input}
 				bind:value={question}
@@ -81,6 +93,15 @@
 </div>
 
 <style>
+	:global(.look-poster) .ask-box {
+		background: var(--accent);
+		color: var(--ink);
+		box-shadow: none;
+		border-width: 1.75px;
+	}
+	:global(.look-poster) .ask-box input::placeholder {
+		color: color-mix(in srgb, var(--ink) 60%, transparent);
+	}
 	.ask-box {
 		display: flex;
 		align-items: center;

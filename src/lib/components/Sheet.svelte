@@ -21,7 +21,7 @@
 		class="panel relative flex max-h-[90dvh] w-full max-w-lg flex-col rounded-t-[28px] border-[2.5px] border-b-0 border-ink bg-paper"
 	>
 		<div class="flex items-center gap-3 px-5 pt-4 pb-2">
-			<h2 class="flex-1 text-2xl leading-tight font-extrabold">{title}</h2>
+			<h2 class="title flex-1 text-2xl leading-tight font-extrabold">{title}</h2>
 			<button
 				type="button"
 				onclick={onclose}

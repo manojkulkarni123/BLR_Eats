@@ -1,5 +1,6 @@
 import { fail, redirect } from '@sveltejs/kit';
 import { handleProblem, suggestHandle } from '#lib/handles.ts';
+import { DEFAULT_THEME_ID } from '#lib/look.ts';
 import type { Actions, PageServerLoad } from './$types';
 
 export const load: PageServerLoad = async ({ parent }) => {
@@ -32,7 +33,7 @@ export const actions: Actions = {
 
 		const { error } = await locals.supabase
 			.from('profiles')
-			.insert({ id: user.id, handle, display_name: displayName });
+			.insert({ id: user.id, handle, display_name: displayName, theme: DEFAULT_THEME_ID });
 		if (error) {
 			const taken = error.code === '23505';
 			return fail(400, {
