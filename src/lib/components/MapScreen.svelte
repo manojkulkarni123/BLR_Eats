@@ -58,15 +58,29 @@
 	let query = $state('');
 	const words = $derived(query.trim().toLowerCase().split(/\s+/).filter(Boolean));
 	const inSlice = $derived(spotsInSlice(map.spots, slice));
+	// "Ask this map": the AI's picks replace what's on screen until the visitor clears them.
+	type Answer = { reply: string; picks: { id: string; why: string }[] };
+	let answer = $state<Answer | null>(null);
+	let asking = $state(false);
+	const askEnabled = $derived(Boolean((page.data as { askEnabled?: boolean }).askEnabled));
+	const picked = $derived(
+		answer
+			? answer.picks
+					.map((p) => map.spots.find((s) => s.id === p.id))
+					.filter((s): s is Spot => Boolean(s))
+			: null
+	);
 	const visible = $derived(
-		words.length
-			? inSlice.filter((s) => {
-					const hay = [s.name, s.area, spotCategoryLabel(map, s), s.recommendation ?? '']
-						.join(' ')
-						.toLowerCase();
-					return words.every((w) => hay.includes(w));
-				})
-			: inSlice
+		picked && picked.length
+			? picked
+			: words.length
+				? inSlice.filter((s) => {
+						const hay = [s.name, s.area, spotCategoryLabel(map, s), s.recommendation ?? '']
+							.join(' ')
+							.toLowerCase();
+						return words.every((w) => hay.includes(w));
+					})
+				: inSlice
 	);
 	const openSpot = $derived(spotSlug ? (map.spots.find((s) => s.slug === spotSlug) ?? null) : null);
 	// A shared spot link opens framed on that spot with its pop-up; after that the map frames what's visible.
@@ -232,6 +246,28 @@
 		userTouchedRail = false;
 		rail.scrollTo({ left: 0 });
 		goto(slug ? `/${handle}/${slug}` : `/${handle}`, { replace: true, reset: false });
+	}
+
+	async function ask() {
+		if (asking || !query.trim()) return;
+		asking = true;
+		answer = null;
+		try {
+			const res = await fetch('/api/ask', {
+				method: 'POST',
+				headers: { 'Content-Type': 'application/json' },
+				body: JSON.stringify({ handle, question: query })
+			});
+			const body = await res.json().catch(() => null);
+			if (!res.ok) return flash(body?.message ?? 'Couldn’t ask right now. Try again');
+			answer = body as Answer;
+			userTouchedRail = false;
+			rail.scrollTo({ left: 0 });
+		} catch {
+			flash('Couldn’t ask right now. Check your connection');
+		} finally {
+			asking = false;
+		}
 	}
 
 	function flash(message: string) {
@@ -457,11 +493,53 @@
 					active={slice?.slug ?? null}
 					onpick={pick}
 					{query}
-					onquery={(q) => (query = q)}
+					onquery={(q) => ((query = q), (answer = null))}
+					onask={askEnabled && map.spots.length >= 2 ? ask : undefined}
+					{asking}
 				/>
 			</div>
 		{/if}
 	</header>
+
+	{#if answer}
+		<div
+			class="sticker pointer-events-auto absolute inset-x-4 top-[calc(118px+env(safe-area-inset-top))] z-10 mx-auto max-w-md rounded-3xl bg-surface p-4"
+			role="status"
+		>
+			<div class="flex items-start gap-2">
+				<p class="flex-1 text-[15px] leading-snug font-semibold">✨ {answer.reply}</p>
+				<button
+					type="button"
+					aria-label="Clear the answer"
+					class="-mt-1 px-1 text-lg font-extrabold opacity-50"
+					onclick={() => (answer = null)}>✕</button
+				>
+			</div>
+			{#if picked?.length}
+				<ol class="mt-2 flex flex-col gap-1.5">
+					{#each answer.picks as pick, i (pick.id)}
+						{@const spot = map.spots.find((s) => s.id === pick.id)}
+						{#if spot}
+							<li>
+								<button
+									type="button"
+									class="flex w-full items-start gap-2 rounded-2xl bg-paper px-3 py-2 text-left"
+									onclick={() => openSheet(spot)}
+								>
+									<span class="font-extrabold">{i + 1}.</span>
+									<span class="min-w-0 flex-1 leading-snug">
+										<span class="block font-extrabold">{spotEmoji(map, spot)} {spot.name}</span>
+										<span class="block text-sm font-semibold opacity-75">{pick.why}</span>
+									</span>
+								</button>
+							</li>
+						{/if}
+					{/each}
+				</ol>
+			{/if}
+			<p class="mt-2 text-xs font-semibold opacity-50">AI picks from {name}'s spots and tips.</p>
+		</div>
+	{/if}
 
 	{#if map.spots.length === 0}
 		<div class="absolute inset-x-6 top-1/2 z-10 mx-auto max-w-sm -translate-y-1/2">
@@ -543,7 +621,9 @@
 				<div class="sticker grid h-full place-items-center rounded-3xl bg-surface p-6 text-center">
 					<p class="text-lg font-extrabold">
 						Nothing matches “{query.trim()}”.<br /><span class="font-semibold opacity-70"
-							>Try a dish, an area or a cuisine.</span
+							>{askEnabled
+								? 'Tap ✨ Ask and the map will suggest something.'
+								: 'Try a dish, an area or a cuisine.'}</span
 						>
 					</p>
 				</div>

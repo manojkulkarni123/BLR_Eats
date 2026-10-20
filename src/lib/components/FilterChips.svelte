@@ -10,9 +10,12 @@
 		/** Viewer search inside this map. */
 		query: string;
 		onquery: (q: string) => void;
+		/** "Ask this map" with AI; absent when it's switched off. */
+		onask?: () => void;
+		asking?: boolean;
 	};
 
-	let { slices, total, active, onpick, query, onquery }: Props = $props();
+	let { slices, total, active, onpick, query, onquery, onask, asking = false }: Props = $props();
 	let searching = $state(false);
 	let input: HTMLInputElement | undefined = $state();
 
@@ -36,13 +39,29 @@
 				bind:this={input}
 				value={query}
 				oninput={(e) => onquery(e.currentTarget.value)}
-				onkeydown={(e) => e.key === 'Escape' && closeSearch()}
-				placeholder="Search: biryani, Indiranagar, filter coffee…"
+				onkeydown={(e) => {
+					if (e.key === 'Escape') closeSearch();
+					if (e.key === 'Enter' && onask && query.trim().split(/\s+/).length >= 2) onask();
+				}}
+				placeholder={onask
+					? 'Search, or ask: “spicy near Koramangala?”'
+					: 'Search: biryani, Indiranagar, filter coffee…'}
 				enterkeyhint="search"
 				aria-label="Search this map"
 				class="min-w-0 flex-1 bg-transparent outline-none"
 			/>
 		</label>
+		{#if onask && query.trim().length >= 3}
+			<button
+				type="button"
+				class="chip ask"
+				disabled={asking}
+				onclick={onask}
+				aria-label="Ask this map"
+			>
+				{asking ? '…' : '✨ Ask'}
+			</button>
+		{/if}
 		<button type="button" class="chip" onclick={closeSearch} aria-label="Close search">✕</button>
 	</div>
 {:else}
@@ -99,6 +118,10 @@
 	}
 	label.chip:active {
 		transform: none;
+	}
+	.chip.ask {
+		background: var(--accent);
+		color: var(--surface);
 	}
 	.count {
 		font-size: 12px;
