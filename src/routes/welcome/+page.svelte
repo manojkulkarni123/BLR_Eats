@@ -7,6 +7,7 @@
 	let { data, form }: PageProps = $props();
 	// Start from the last attempt, or a suggestion from the email address.
 	let handle = $state(untrack(() => form?.handle ?? data.suggestion));
+	let name = $state(untrack(() => form?.displayName ?? ''));
 	let busy = $state(false);
 </script>
 
@@ -33,7 +34,7 @@
 				name="name"
 				required
 				maxlength="40"
-				value={form?.displayName ?? ''}
+				bind:value={name}
 				placeholder="Manoj"
 				autocomplete="given-name"
 				class="sticker rounded-2xl bg-surface px-4 py-3 text-lg font-semibold outline-none"

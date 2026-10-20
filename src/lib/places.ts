@@ -71,8 +71,15 @@ export async function searchPlaces(query: string, signal?: AbortSignal): Promise
 	if (!res.ok) return [];
 	const { features } = (await res.json()) as { features: PhotonFeature[] };
 
+	// Photon can return the same OSM object more than once; keep the first.
+	const seen = new Set<string>();
 	return features
-		.filter((f) => f.properties.name)
+		.filter((f) => {
+			const id = `${f.properties.osm_type}${f.properties.osm_id}`;
+			if (!f.properties.name || seen.has(id)) return false;
+			seen.add(id);
+			return true;
+		})
 		.map((f) => {
 			const p = f.properties;
 			const name = p.name!;

@@ -1,10 +1,10 @@
 -- blr_eats v1 schema. Every map is public to read; only its owner can write.
 
-create extension if not exists citext;
+create extension if not exists citext with schema extensions;
 
 create table public.profiles (
 	id uuid primary key references auth.users (id) on delete cascade,
-	handle citext not null unique check (handle ~ '^[a-z0-9_]{3,20}$'),
+	handle extensions.citext not null unique check (handle ~ '^[a-z0-9_]{3,20}$'),
 	display_name text not null check (char_length(display_name) between 1 and 40),
 	avatar_path text,
 	bio text check (char_length(bio) <= 120),
@@ -59,6 +59,8 @@ create table public.spot_photos (
 	created_at timestamptz not null default now()
 );
 create index spot_photos_spot on public.spot_photos (spot_id, position);
+create index spot_photos_owner on public.spot_photos (owner_id);
+create index spots_custom_category on public.spots (custom_category_id);
 
 -- Row level security: public read, owner write.
 alter table public.profiles enable row level security;
@@ -76,11 +78,29 @@ create policy "owner write" on public.custom_categories for all
 
 create policy "public read" on public.spots for select using (true);
 create policy "owner write" on public.spots for all
-	using ((select auth.uid()) = owner_id) with check ((select auth.uid()) = owner_id);
+	using ((select auth.uid()) = owner_id)
+	with check (
+		(select auth.uid()) = owner_id
+		-- A custom category must be the owner's own.
+		and (
+			custom_category_id is null
+			or exists (
+				select 1 from public.custom_categories c
+				where c.id = custom_category_id and c.owner_id = (select auth.uid())
+			)
+		)
+	);
 
 create policy "public read" on public.spot_photos for select using (true);
 create policy "owner write" on public.spot_photos for all
-	using ((select auth.uid()) = owner_id) with check ((select auth.uid()) = owner_id);
+	using ((select auth.uid()) = owner_id)
+	with check (
+		(select auth.uid()) = owner_id
+		-- Photos can only be attached to the owner's own spots.
+		and exists (
+			select 1 from public.spots s where s.id = spot_id and s.owner_id = (select auth.uid())
+		)
+	);
 
 -- Photos: public bucket, owners write only inside their own folder (<uid>/...).
 insert into storage.buckets (id, name, public, file_size_limit, allowed_mime_types)
@@ -91,3 +111,6 @@ create policy "owner upload" on storage.objects for insert to authenticated
 	with check (bucket_id = 'photos' and (storage.foldername(name))[1] = (select auth.uid())::text);
 create policy "owner delete" on storage.objects for delete to authenticated
 	using (bucket_id = 'photos' and (storage.foldername(name))[1] = (select auth.uid())::text);
+
+-- Supabase's own helper; it runs from an event trigger and shouldn't be callable over the API.
+revoke execute on function public.rls_auto_enable() from anon, authenticated, public;
