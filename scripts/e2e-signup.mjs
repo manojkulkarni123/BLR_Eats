@@ -208,19 +208,24 @@ try {
 		throw new Error(`Instagram button href: ${ig}`);
 	step('visitor sees the Instagram button → @blr.eats_test');
 
-	// Ask this map: an AI answer that only picks this map's spots. (Search may still be open.)
-	const openSearch = visitor.locator('button[aria-label="Search this map"]');
-	if (await openSearch.count()) await openSearch.click();
-	await visitor.fill('input[aria-label="Search this map"]', 'something sweet for dessert');
-	await visitor.click('button[aria-label="Ask this map"]');
-	const bubble = visitor.getByRole('status').filter({ hasText: '✨' });
+	// Ask this map: its own ✨ Ask chip, a thinking card, then an answer from this map only.
+	const closeSearch = visitor.locator('button[aria-label="Close search"]');
+	if (await closeSearch.count()) await closeSearch.click();
+	await visitor.click('button:has-text("✨ Ask")');
+	await visitor.fill('input[aria-label="Ask this map"]', 'something sweet for dessert');
+	await visitor.click('form button[type=submit]:has-text("Ask")');
+	await visitor
+		.getByText(/Reading .*tips|Matching your mood|Picking the best/)
+		.waitFor({ timeout: 5000 });
+	step('asking shows the thinking card straight away');
+	const bubble = visitor.locator('.answer');
 	await bubble.waitFor({ timeout: 25000 });
 	const answerText = (await bubble.textContent())?.replace(/\s+/g, ' ').trim();
 	if (!/Corner House/.test(answerText ?? ''))
 		throw new Error(`Ask didn't pick the dessert spot: ${answerText}`);
 	await visitor.screenshot({ path: `${out}/e2e-10-ask.png` });
 	step('Ask "something sweet" → picked Corner House');
-	await visitor.click('button[aria-label="Close search"]');
+	await visitor.click('button[aria-label="Close Ask"]');
 	await visitor.click('button[aria-expanded]');
 	await visitor.getByText('Testing every dosa in town.').waitFor({ timeout: 5000 });
 	step('visitor taps the name chip and sees photo, bio and Follow');

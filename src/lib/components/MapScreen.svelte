@@ -10,6 +10,8 @@
 	import SpotSheet from './SpotSheet.svelte';
 	import ProfileSheet from './ProfileSheet.svelte';
 	import ListsSheet from './ListsSheet.svelte';
+	import AskPanel from './AskPanel.svelte';
+	import AskThinking from './AskThinking.svelte';
 	import { recordView } from '#lib/spots-client.ts';
 	import InstagramIcon from './InstagramIcon.svelte';
 	import { instagramUrl } from '#lib/instagram.ts';
@@ -62,6 +64,8 @@
 	type Answer = { reply: string; picks: { id: string; why: string }[] };
 	let answer = $state<Answer | null>(null);
 	let asking = $state(false);
+	let askOpen = $state(false);
+	let askedQuestion = $state('');
 	const askEnabled = $derived(Boolean((page.data as { askEnabled?: boolean }).askEnabled));
 	const picked = $derived(
 		answer
@@ -71,7 +75,7 @@
 			: null
 	);
 	const visible = $derived(
-		picked && picked.length
+		askOpen && picked && picked.length
 			? picked
 			: words.length
 				? inSlice.filter((s) => {
@@ -248,15 +252,27 @@
 		goto(slug ? `/${handle}/${slug}` : `/${handle}`, { replace: true, reset: false });
 	}
 
-	async function ask() {
-		if (asking || !query.trim()) return;
+	function openAsk() {
+		askOpen = true;
+		menuOpen = false;
+		aboutOpen = false;
+	}
+
+	function closeAsk() {
+		askOpen = false;
+		answer = null;
+	}
+
+	async function ask(question: string) {
+		if (asking) return;
 		asking = true;
 		answer = null;
+		askedQuestion = question;
 		try {
 			const res = await fetch('/api/ask', {
 				method: 'POST',
 				headers: { 'Content-Type': 'application/json' },
-				body: JSON.stringify({ handle, question: query })
+				body: JSON.stringify({ handle, question })
 			});
 			const body = await res.json().catch(() => null);
 			if (!res.ok) return flash(body?.message ?? 'Couldn’t ask right now. Try again');
@@ -485,7 +501,18 @@
 			</div>
 		{/if}
 
-		{#if map.spots.length}
+		{#if askOpen}
+			<div class="pointer-events-auto">
+				<AskPanel
+					owner={name}
+					initial={query}
+					{asking}
+					answered={Boolean(answer)}
+					onask={ask}
+					onclose={closeAsk}
+				/>
+			</div>
+		{:else if map.spots.length}
 			<div class="pointer-events-auto">
 				<FilterChips
 					{slices}
@@ -493,19 +520,28 @@
 					active={slice?.slug ?? null}
 					onpick={pick}
 					{query}
-					onquery={(q) => ((query = q), (answer = null))}
-					onask={askEnabled && map.spots.length >= 2 ? ask : undefined}
-					{asking}
+					onquery={(q) => (query = q)}
+					onaskopen={askEnabled && map.spots.length >= 2 ? openAsk : undefined}
 				/>
 			</div>
 		{/if}
 	</header>
 
-	{#if answer}
+	{#if askOpen && asking}
 		<div
-			class="sticker pointer-events-auto absolute inset-x-4 top-[calc(118px+env(safe-area-inset-top))] z-10 mx-auto max-w-md rounded-3xl bg-surface p-4"
+			class="sticker pointer-events-auto absolute inset-x-4 top-[calc(150px+env(safe-area-inset-top))] z-10 mx-auto max-w-md rounded-3xl bg-surface p-4"
+		>
+			<p class="mb-3 truncate text-sm font-extrabold opacity-60">“{askedQuestion}”</p>
+			<AskThinking owner={name} />
+		</div>
+	{/if}
+
+	{#if askOpen && answer}
+		<div
+			class="sticker answer pointer-events-auto absolute inset-x-4 top-[calc(150px+env(safe-area-inset-top))] z-10 mx-auto max-h-[calc(100dvh-420px)] max-w-md overflow-y-auto rounded-3xl bg-surface p-4"
 			role="status"
 		>
+			<p class="mb-1 truncate text-sm font-extrabold opacity-60">“{askedQuestion}”</p>
 			<div class="flex items-start gap-2">
 				<p class="flex-1 text-[15px] leading-snug font-semibold">✨ {answer.reply}</p>
 				<button
@@ -619,13 +655,19 @@
 		{#if words.length && visible.length === 0}
 			<div class="h-[200px] w-[82vw] max-w-[340px] flex-none snap-center">
 				<div class="sticker grid h-full place-items-center rounded-3xl bg-surface p-6 text-center">
-					<p class="text-lg font-extrabold">
-						Nothing matches “{query.trim()}”.<br /><span class="font-semibold opacity-70"
-							>{askEnabled
-								? 'Tap ✨ Ask and the map will suggest something.'
-								: 'Try a dish, an area or a cuisine.'}</span
-						>
-					</p>
+					<div class="text-lg font-extrabold">
+						<p>Nothing matches “{query.trim()}”.</p>
+						{#if askEnabled}
+							<button
+								type="button"
+								onclick={openAsk}
+								class="sticker mt-3 rounded-full bg-accent px-4 py-2 text-base text-surface"
+								>✨ Ask the map instead</button
+							>
+						{:else}
+							<p class="font-semibold opacity-70">Try a dish, an area or a cuisine.</p>
+						{/if}
+					</div>
 				</div>
 			</div>
 		{/if}
@@ -795,6 +837,15 @@
 	/* Instagram's own warm gradient, so the button reads as Instagram at a glance. */
 	.ig {
 		background: linear-gradient(45deg, #feda75, #fa7e1e 30%, #d62976 60%, #962fbf 85%, #4f5bd5);
+	}
+	.answer {
+		animation: rise 260ms cubic-bezier(0.34, 1.3, 0.64, 1) both;
+	}
+	@keyframes rise {
+		from {
+			opacity: 0;
+			transform: translateY(8px) scale(0.98);
+		}
 	}
 	.celebrate {
 		animation: pop-in 480ms cubic-bezier(0.34, 1.56, 0.64, 1) both;

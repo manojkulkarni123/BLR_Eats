@@ -10,12 +10,11 @@
 		/** Viewer search inside this map. */
 		query: string;
 		onquery: (q: string) => void;
-		/** "Ask this map" with AI; absent when it's switched off. */
-		onask?: () => void;
-		asking?: boolean;
+		/** Opens "Ask this map" (AI); absent when it's switched off. */
+		onaskopen?: () => void;
 	};
 
-	let { slices, total, active, onpick, query, onquery, onask, asking = false }: Props = $props();
+	let { slices, total, active, onpick, query, onquery, onaskopen }: Props = $props();
 	let searching = $state(false);
 	let input: HTMLInputElement | undefined = $state();
 
@@ -39,33 +38,20 @@
 				bind:this={input}
 				value={query}
 				oninput={(e) => onquery(e.currentTarget.value)}
-				onkeydown={(e) => {
-					if (e.key === 'Escape') closeSearch();
-					if (e.key === 'Enter' && onask && query.trim().split(/\s+/).length >= 2) onask();
-				}}
-				placeholder={onask
-					? 'Search, or ask: “spicy near Koramangala?”'
-					: 'Search: biryani, Indiranagar, filter coffee…'}
+				onkeydown={(e) => e.key === 'Escape' && closeSearch()}
+				placeholder="Search: biryani, Indiranagar, filter coffee…"
 				enterkeyhint="search"
 				aria-label="Search this map"
 				class="min-w-0 flex-1 bg-transparent outline-none"
 			/>
 		</label>
-		{#if onask && query.trim().length >= 3}
-			<button
-				type="button"
-				class="chip ask"
-				disabled={asking}
-				onclick={onask}
-				aria-label="Ask this map"
-			>
-				{asking ? '…' : '✨ Ask'}
-			</button>
-		{/if}
 		<button type="button" class="chip" onclick={closeSearch} aria-label="Close search">✕</button>
 	</div>
 {:else}
 	<nav class="no-scrollbar flex gap-2 overflow-x-auto px-4 pt-1 pb-2" aria-label="Filter spots">
+		{#if onaskopen}
+			<button type="button" class="chip ask" onclick={onaskopen}>✨ Ask</button>
+		{/if}
 		<button type="button" class="chip" onclick={openSearch} aria-label="Search this map">🔎</button>
 		<button type="button" class="chip" class:on={active === null} onclick={() => onpick(null)}>
 			All <span class="count">{total}</span>
@@ -120,7 +106,7 @@
 		transform: none;
 	}
 	.chip.ask {
-		background: var(--accent);
+		background: linear-gradient(100deg, var(--accent), #8338ec);
 		color: var(--surface);
 	}
 	.count {
