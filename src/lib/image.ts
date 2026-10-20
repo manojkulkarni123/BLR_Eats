@@ -1,6 +1,12 @@
 // Photos are resized in the browser before upload: fast on mobile data and cheap to store.
 
-export type ResizedPhoto = { full: Blob; thumb: Blob; width: number; height: number; ext: 'webp' | 'jpg' };
+export type ResizedPhoto = {
+	full: Blob;
+	thumb: Blob;
+	width: number;
+	height: number;
+	ext: 'webp' | 'jpg';
+};
 
 async function encode(bitmap: ImageBitmap, maxSide: number, quality: number) {
 	const scale = Math.min(1, maxSide / Math.max(bitmap.width, bitmap.height));
@@ -29,7 +35,13 @@ export async function resizePhoto(file: File): Promise<ResizedPhoto> {
 	try {
 		const full = await encode(bitmap, 1600, 0.82);
 		const thumb = await encode(bitmap, 480, 0.78);
-		return { full: full.blob, thumb: thumb.blob, width: full.width, height: full.height, ext: full.ext };
+		return {
+			full: full.blob,
+			thumb: thumb.blob,
+			width: full.width,
+			height: full.height,
+			ext: full.ext
+		};
 	} finally {
 		bitmap.close();
 	}

@@ -35,7 +35,9 @@
 					decoding="async"
 					class="h-full w-full object-cover"
 				/>
-				<span class="sticker absolute top-2 left-2 grid size-10 place-items-center rounded-full bg-[var(--bg)] text-xl">
+				<span
+					class="sticker absolute top-2 left-2 grid size-10 place-items-center rounded-full bg-[var(--bg)] text-xl"
+				>
 					{emoji}
 				</span>
 			</div>
@@ -48,14 +50,18 @@
 		{:else}
 			<!-- No-photo card: a first-class look, not a placeholder. -->
 			<div class="relative flex min-h-0 flex-1 flex-col bg-[var(--bg)] px-4 pt-3 text-[var(--on)]">
-				<span class="sticker-emoji pointer-events-none absolute -top-2 -right-3 text-[88px] leading-none">
+				<span
+					class="sticker-emoji pointer-events-none absolute -top-2 -right-3 text-[88px] leading-none"
+				>
 					{emoji}
 				</span>
 				<p class="text-xs font-semibold tracking-wider uppercase opacity-80">{label}</p>
 				<h2 class="max-w-[75%] text-[28px] leading-[1.05] font-extrabold">{spot.name}</h2>
 				<p class="text-sm font-semibold opacity-90">📍 {spot.area}</p>
 				{#if spot.recommendation}
-					<p class="bubble mt-auto mb-2 line-clamp-2 rounded-2xl bg-surface px-3 py-1.5 text-[15px] leading-snug font-semibold text-ink">
+					<p
+						class="bubble mt-auto mb-2 line-clamp-2 rounded-2xl bg-surface px-3 py-1.5 text-[15px] leading-snug font-semibold text-ink"
+					>
 						{spot.recommendation}
 					</p>
 				{/if}
@@ -64,7 +70,9 @@
 	</button>
 
 	{#if photo && spot.recommendation}
-		<p class="line-clamp-2 bg-[var(--bg)] px-4 text-[15px] leading-snug font-semibold text-[var(--on)]">
+		<p
+			class="line-clamp-2 bg-[var(--bg)] px-4 text-[15px] leading-snug font-semibold text-[var(--on)]"
+		>
 			{spot.recommendation}
 		</p>
 	{/if}

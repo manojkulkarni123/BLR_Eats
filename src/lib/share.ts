@@ -1,7 +1,11 @@
 export type ShareResult = 'shared' | 'copied' | 'cancelled' | 'failed';
 
 /** Share through the phone's share menu, or copy the link where that isn't available. */
-export async function shareLink(data: { title: string; text: string; url: string }): Promise<ShareResult> {
+export async function shareLink(data: {
+	title: string;
+	text: string;
+	url: string;
+}): Promise<ShareResult> {
 	if (navigator.share) {
 		try {
 			await navigator.share(data);

@@ -33,7 +33,8 @@
 	}
 
 	function label(item: Item) {
-		if (item.category) return `${categoryByKey[item.category].emoji} ${categoryByKey[item.category].label}`;
+		if (item.category)
+			return `${categoryByKey[item.category].emoji} ${categoryByKey[item.category].label}`;
 		const c = customCategories.find((c) => c.id === item.customCategoryId);
 		return c ? `${c.emoji} ${c.name}` : 'Pick a type';
 	}
@@ -99,8 +100,8 @@
 							type="button"
 							aria-label="Remove {item.name}"
 							class="px-1 text-lg font-extrabold opacity-50"
-							onclick={() => (items = items.filter((i) => i.osmId !== item.osmId))}
-						>✕</button>
+							onclick={() => (items = items.filter((i) => i.osmId !== item.osmId))}>✕</button
+						>
 					</div>
 					{#if open === item.osmId}
 						<div class="mt-2">
@@ -130,7 +131,8 @@
 			onclick={finish}
 			class="sticker w-full rounded-full bg-sun py-3 text-xl font-extrabold disabled:opacity-60"
 		>
-			{#if busy}Saving…{:else if items.length}Done, show my map ({items.length}) →{:else}Skip for now{/if}
+			{#if busy}Saving…{:else if items.length}Done, show my map ({items.length}) →{:else}Skip for
+				now{/if}
 		</button>
 	{/snippet}
 </Sheet>

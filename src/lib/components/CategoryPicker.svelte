@@ -41,7 +41,8 @@
 			class:on={value.category === c.key}
 			onclick={() => onchange({ category: c.key, customCategoryId: null })}
 		>
-			{c.emoji} {c.label}
+			{c.emoji}
+			{c.label}
 		</button>
 	{/each}
 	{#each customCategories as c (c.id)}
@@ -51,11 +52,13 @@
 			class:on={value.customCategoryId === c.id}
 			onclick={() => onchange({ category: null, customCategoryId: c.id })}
 		>
-			{c.emoji} {c.name}
+			{c.emoji}
+			{c.name}
 		</button>
 	{/each}
 	{#if !compact}
-		<button type="button" class="chip dashed" onclick={() => (adding = !adding)}>＋ Your own</button>
+		<button type="button" class="chip dashed" onclick={() => (adding = !adding)}>＋ Your own</button
+		>
 	{/if}
 </div>
 
@@ -73,7 +76,9 @@
 			placeholder="e.g. Military hotels"
 			class="sticker min-w-0 flex-1 rounded-xl bg-surface px-3 py-2 font-semibold outline-none"
 		/>
-		<button disabled={busy} class="sticker rounded-xl bg-ink px-3 font-extrabold text-paper">Add</button>
+		<button disabled={busy} class="sticker rounded-xl bg-ink px-3 font-extrabold text-paper"
+			>Add</button
+		>
 	</form>
 {/if}
 

@@ -8,7 +8,12 @@
 <svelte:window onkeydown={(e) => e.key === 'Escape' && onclose()} />
 
 <div class="fixed inset-0 z-30 flex items-end justify-center">
-	<button type="button" class="backdrop absolute inset-0 bg-ink/40" aria-label="Close" onclick={onclose}></button>
+	<button
+		type="button"
+		class="backdrop absolute inset-0 bg-ink/40"
+		aria-label="Close"
+		onclick={onclose}
+	></button>
 	<div
 		role="dialog"
 		aria-modal="true"

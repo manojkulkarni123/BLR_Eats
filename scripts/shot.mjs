@@ -10,7 +10,10 @@ const browser = await chromium.launch({
 });
 const page = await (await browser.newContext({ ...devices['Pixel 7'] })).newPage();
 const logs = [];
-page.on('console', (m) => ['error', 'warning'].includes(m.type()) && logs.push(`${m.type()}: ${m.text()}`));
+page.on(
+	'console',
+	(m) => ['error', 'warning'].includes(m.type()) && logs.push(`${m.type()}: ${m.text()}`)
+);
 page.on('pageerror', (e) => logs.push(`pageerror: ${e.message}`));
 page.on('requestfailed', (r) => logs.push(`failed: ${r.url()} ${r.failure()?.errorText}`));
 

@@ -58,7 +58,10 @@ export function buildMapStyle(theme: Theme): StyleSpecification {
 				type: 'line',
 				source: 'omt',
 				'source-layer': 'waterway',
-				paint: { 'line-color': m.water, 'line-width': ['interpolate', ['linear'], ['zoom'], 10, 1, 16, 4] }
+				paint: {
+					'line-color': m.water,
+					'line-width': ['interpolate', ['linear'], ['zoom'], 10, 1, 16, 4]
+				}
 			},
 			{
 				id: 'building',

@@ -11,8 +11,16 @@ import type { FoodMap, Spot } from '#lib/types.ts';
 const W = 1200;
 const H = 630;
 
-type Node = { type: string; props: { style?: Record<string, unknown>; children?: unknown; [k: string]: unknown } };
-const h = (type: string, style: Record<string, unknown>, children?: unknown, extra: object = {}): Node => ({
+type Node = {
+	type: string;
+	props: { style?: Record<string, unknown>; children?: unknown; [k: string]: unknown };
+};
+const h = (
+	type: string,
+	style: Record<string, unknown>,
+	children?: unknown,
+	extra: object = {}
+): Node => ({
 	type,
 	props: { style: { display: 'flex', ...style }, children, ...extra }
 });
@@ -31,9 +39,14 @@ async function emojiSvg(segment: string): Promise<string> {
 		.filter((c) => c !== 'fe0f')
 		.join('-');
 	if (!emojiCache.has(code)) {
-		const res = await fetch(`https://cdn.jsdelivr.net/gh/jdecked/twemoji@15.1.0/assets/svg/${code}.svg`);
+		const res = await fetch(
+			`https://cdn.jsdelivr.net/gh/jdecked/twemoji@15.1.0/assets/svg/${code}.svg`
+		);
 		const svg = res.ok ? await res.text() : '';
-		emojiCache.set(code, svg ? `data:image/svg+xml;base64,${Buffer.from(svg).toString('base64')}` : '');
+		emojiCache.set(
+			code,
+			svg ? `data:image/svg+xml;base64,${Buffer.from(svg).toString('base64')}` : ''
+		);
 	}
 	return emojiCache.get(code)!;
 }
@@ -42,8 +55,10 @@ async function emojiSvg(segment: string): Promise<string> {
 function layout(spots: Spot[], box: { w: number; h: number; pad: number }) {
 	const lats = spots.map((s) => s.lat);
 	const lngs = spots.map((s) => s.lng);
-	const minLat = Math.min(...lats), maxLat = Math.max(...lats);
-	const minLng = Math.min(...lngs), maxLng = Math.max(...lngs);
+	const minLat = Math.min(...lats),
+		maxLat = Math.max(...lats);
+	const minLng = Math.min(...lngs),
+		maxLng = Math.max(...lngs);
 	const spanX = Math.max(maxLng - minLng, 0.01);
 	const spanY = Math.max(maxLat - minLat, 0.01);
 	const scale = Math.min((box.w - box.pad * 2) / spanX, (box.h - box.pad * 2) / spanY);
@@ -64,7 +79,13 @@ export type OgInput = {
 	emojiFor: (s: Spot) => string;
 };
 
-export async function renderOg({ map, title, subtitle, spots, emojiFor }: OgInput): Promise<Buffer> {
+export async function renderOg({
+	map,
+	title,
+	subtitle,
+	spots,
+	emojiFor
+}: OgInput): Promise<Buffer> {
 	const theme = getTheme(map.profile.theme);
 	const ink = theme.ui.ink;
 	const box = { w: 520, h: 540, pad: 60 };
@@ -97,31 +118,57 @@ export async function renderOg({ map, title, subtitle, spots, emojiFor }: OgInpu
 
 	const tree = h(
 		'div',
-		{ width: W, height: H, background: theme.ui.paper, fontFamily: 'Baloo', color: ink, padding: 45, gap: 40 },
+		{
+			width: W,
+			height: H,
+			background: theme.ui.paper,
+			fontFamily: 'Baloo',
+			color: ink,
+			padding: 45,
+			gap: 40
+		},
 		[
-			h('div', { flexDirection: 'column', justifyContent: 'space-between', width: W - 90 - 40 - box.w, height: H - 90, flexShrink: 0 }, [
-				h('div', { flexDirection: 'column', gap: 18 }, [
-					h('div', { gap: 10 }, emojis.map((e) => h('div', { fontSize: 50 }, e))),
-					h('div', { fontSize: title.length > 30 ? 58 : 68, fontWeight: 800, lineHeight: 1 }, title),
-					h('div', { fontSize: 30, fontWeight: 600, opacity: 0.75, lineHeight: 1.2 }, subtitle)
-				]),
-				h('div', { alignItems: 'center', gap: 14 }, [
-					h(
-						'div',
-						{
-							background: theme.ui.sun,
-							border: `4px solid ${ink}`,
-							boxShadow: `5px 5px 0 ${ink}`,
-							borderRadius: 999,
-							padding: '8px 28px',
-							fontSize: 34,
-							fontWeight: 800
-						},
-						'👉 Open the map'
-					),
-					h('div', { fontSize: 28, fontWeight: 800, opacity: 0.6 }, 'blr_eats')
-				])
-			]),
+			h(
+				'div',
+				{
+					flexDirection: 'column',
+					justifyContent: 'space-between',
+					width: W - 90 - 40 - box.w,
+					height: H - 90,
+					flexShrink: 0
+				},
+				[
+					h('div', { flexDirection: 'column', gap: 18 }, [
+						h(
+							'div',
+							{ gap: 10 },
+							emojis.map((e) => h('div', { fontSize: 50 }, e))
+						),
+						h(
+							'div',
+							{ fontSize: title.length > 30 ? 58 : 68, fontWeight: 800, lineHeight: 1 },
+							title
+						),
+						h('div', { fontSize: 30, fontWeight: 600, opacity: 0.75, lineHeight: 1.2 }, subtitle)
+					]),
+					h('div', { alignItems: 'center', gap: 14 }, [
+						h(
+							'div',
+							{
+								background: theme.ui.sun,
+								border: `4px solid ${ink}`,
+								boxShadow: `5px 5px 0 ${ink}`,
+								borderRadius: 999,
+								padding: '8px 28px',
+								fontSize: 34,
+								fontWeight: 800
+							},
+							'👉 Open the map'
+						),
+						h('div', { fontSize: 28, fontWeight: 800, opacity: 0.6 }, 'blr_eats')
+					])
+				]
+			),
 			h(
 				'div',
 				{
@@ -137,11 +184,51 @@ export async function renderOg({ map, title, subtitle, spots, emojiFor }: OgInpu
 				},
 				[
 					// A few bold strokes standing in for roads, lakes and parks.
-					h('div', { position: 'absolute', left: -40, top: 200, width: 640, height: 22, background: theme.map.roadMajor, transform: 'rotate(-18deg)' }),
-					h('div', { position: 'absolute', left: 230, top: -40, width: 22, height: 640, background: theme.map.roadMajor, transform: 'rotate(12deg)' }),
-					h('div', { position: 'absolute', left: 340, top: 300, width: 150, height: 110, borderRadius: 80, background: theme.map.water }),
-					h('div', { position: 'absolute', left: 40, top: 360, width: 170, height: 120, borderRadius: 70, background: theme.map.park }),
-					h('div', { position: 'absolute', left: 300, top: 40, width: 120, height: 90, borderRadius: 60, background: theme.map.park }),
+					h('div', {
+						position: 'absolute',
+						left: -40,
+						top: 200,
+						width: 640,
+						height: 22,
+						background: theme.map.roadMajor,
+						transform: 'rotate(-18deg)'
+					}),
+					h('div', {
+						position: 'absolute',
+						left: 230,
+						top: -40,
+						width: 22,
+						height: 640,
+						background: theme.map.roadMajor,
+						transform: 'rotate(12deg)'
+					}),
+					h('div', {
+						position: 'absolute',
+						left: 340,
+						top: 300,
+						width: 150,
+						height: 110,
+						borderRadius: 80,
+						background: theme.map.water
+					}),
+					h('div', {
+						position: 'absolute',
+						left: 40,
+						top: 360,
+						width: 170,
+						height: 120,
+						borderRadius: 70,
+						background: theme.map.park
+					}),
+					h('div', {
+						position: 'absolute',
+						left: 300,
+						top: 40,
+						width: 120,
+						height: 90,
+						borderRadius: 60,
+						background: theme.map.park
+					}),
 					...pinNodes
 				]
 			)

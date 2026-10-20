@@ -16,7 +16,14 @@ type SpotRow = {
 	custom_category_id: string | null;
 	recommendation: string | null;
 	reel_url: string | null;
-	spot_photos: { id: string; path: string; thumb_path: string; width: number; height: number; position: number }[];
+	spot_photos: {
+		id: string;
+		path: string;
+		thumb_path: string;
+		width: number;
+		height: number;
+		position: number;
+	}[];
 };
 
 /** The one place that loads a map: the demo from seed data, everyone else from Supabase. */

@@ -4,6 +4,7 @@
 
 	// Email → 6-digit code. The email also has a link, but the code works everywhere,
 	// including in-app browsers that can't follow a sign-in link.
+	const CODE_PATTERN = '[0-9]{6,8}';
 	let step: 'email' | 'code' = $state('email');
 	let email = $state('');
 	let code = $state('');
@@ -54,7 +55,10 @@
 			autocomplete="email"
 			class="sticker rounded-2xl bg-surface px-4 py-3 text-lg font-semibold outline-none"
 		/>
-		<button disabled={busy} class="sticker rounded-full bg-sun py-3 text-xl font-extrabold disabled:opacity-60">
+		<button
+			disabled={busy}
+			class="sticker rounded-full bg-sun py-3 text-xl font-extrabold disabled:opacity-60"
+		>
 			{busy ? 'Sending…' : 'Make my map →'}
 		</button>
 	</form>
@@ -66,15 +70,22 @@
 			bind:value={code}
 			inputmode="numeric"
 			autocomplete="one-time-code"
-			pattern="[0-9]{'{'}6,8{'}'}"
+			pattern={CODE_PATTERN}
 			maxlength="8"
 			placeholder="123456"
 			class="sticker rounded-2xl bg-surface px-4 py-3 text-center text-3xl font-extrabold tracking-[0.3em] outline-none"
 		/>
-		<button disabled={busy} class="sticker rounded-full bg-sun py-3 text-xl font-extrabold disabled:opacity-60">
+		<button
+			disabled={busy}
+			class="sticker rounded-full bg-sun py-3 text-xl font-extrabold disabled:opacity-60"
+		>
 			{busy ? 'Checking…' : 'Let me in →'}
 		</button>
-		<button type="button" class="text-sm font-semibold underline opacity-70" onclick={() => (step = 'email')}>
+		<button
+			type="button"
+			class="text-sm font-semibold underline opacity-70"
+			onclick={() => (step = 'email')}
+		>
 			Use a different email
 		</button>
 	</form>

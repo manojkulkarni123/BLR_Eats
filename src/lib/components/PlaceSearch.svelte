@@ -72,7 +72,9 @@
 						<span class="text-xl" aria-hidden="true">📍</span>
 						<span class="min-w-0 flex-1">
 							<span class="block truncate font-extrabold">{place.name}</span>
-							<span class="block truncate text-sm font-semibold opacity-60">{place.area || 'Bangalore'}</span>
+							<span class="block truncate text-sm font-semibold opacity-60"
+								>{place.area || 'Bangalore'}</span
+							>
 						</span>
 						<span class="font-extrabold">＋</span>
 					</button>
@@ -80,6 +82,8 @@
 			{/each}
 		</ul>
 	{:else if searched && !loading}
-		<p class="px-1 font-semibold opacity-70">No match in Bangalore. Try a shorter name or the area too.</p>
+		<p class="px-1 font-semibold opacity-70">
+			No match in Bangalore. Try a shorter name or the area too.
+		</p>
 	{/if}
 </div>

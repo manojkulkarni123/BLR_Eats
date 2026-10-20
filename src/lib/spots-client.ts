@@ -49,16 +49,25 @@ function fail(error: { message: string } | null): never | void {
 }
 
 /** Insert one or many spots; returns their ids in the same order. */
-export async function createSpots(ownerId: string, inputs: SpotInput[], existing: Spot[]): Promise<string[]> {
+export async function createSpots(
+	ownerId: string,
+	inputs: SpotInput[],
+	existing: Spot[]
+): Promise<string[]> {
 	const taken = new Set(existing.map((s) => s.slug));
-	const rows = inputs.map((i) => row(ownerId, i, uniqueSlug(slugify(`${i.name} ${i.area}`), taken)));
+	const rows = inputs.map((i) =>
+		row(ownerId, i, uniqueSlug(slugify(`${i.name} ${i.area}`), taken))
+	);
 	const { data, error } = await supabase().from('spots').insert(rows).select('id');
 	fail(error);
 	return (data ?? []).map((d) => d.id as string);
 }
 
 export async function updateSpot(ownerId: string, spot: Spot, input: SpotInput): Promise<void> {
-	const { owner_id: _, slug: __, ...patch } = row(ownerId, input, spot.slug);
+	// Owner and slug never change on edit, so the shared link keeps working.
+	const patch: Partial<ReturnType<typeof row>> = row(ownerId, input, spot.slug);
+	delete patch.owner_id;
+	delete patch.slug;
 	const { error } = await supabase().from('spots').update(patch).eq('id', spot.id);
 	fail(error);
 }
@@ -70,7 +79,12 @@ export async function deleteSpot(spot: Spot): Promise<void> {
 	fail(error);
 }
 
-export async function addPhotos(ownerId: string, spotId: string, files: File[], startAt = 0): Promise<void> {
+export async function addPhotos(
+	ownerId: string,
+	spotId: string,
+	files: File[],
+	startAt = 0
+): Promise<void> {
 	const db = supabase();
 	for (const [i, file] of files.entries()) {
 		const photo = await resizePhoto(file);
@@ -103,7 +117,11 @@ export async function deletePhoto(photo: Spot['photos'][number]): Promise<void> 
 	fail(error);
 }
 
-export async function createCustomCategory(ownerId: string, name: string, emoji: string): Promise<string> {
+export async function createCustomCategory(
+	ownerId: string,
+	name: string,
+	emoji: string
+): Promise<string> {
 	const { data, error } = await supabase()
 		.from('custom_categories')
 		.insert({ owner_id: ownerId, name: name.trim(), slug: slugify(name), emoji: emoji || '📍' })
@@ -113,7 +131,10 @@ export async function createCustomCategory(ownerId: string, name: string, emoji:
 	return data!.id as string;
 }
 
-export async function updateProfile(ownerId: string, patch: { display_name?: string; bio?: string | null }) {
+export async function updateProfile(
+	ownerId: string,
+	patch: { display_name?: string; bio?: string | null }
+) {
 	const { error } = await supabase().from('profiles').update(patch).eq('id', ownerId);
 	fail(error);
 }

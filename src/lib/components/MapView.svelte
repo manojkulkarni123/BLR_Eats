@@ -28,6 +28,8 @@
 	let map: MlMap | null = $state(null);
 	let ml: typeof import('maplibre-gl') | null = null;
 	let index: Supercluster | null = null;
+	// Imperative MapLibre markers, not UI state.
+	// eslint-disable-next-line svelte/prefer-svelte-reactivity
 	const markers = new Map<string, { marker: Marker; el: HTMLElement }>();
 	let youMarker: Marker | null = null;
 	let popOrder = 0;
@@ -92,11 +94,17 @@
 			[b.getWest() - 0.05, b.getSouth() - 0.05, b.getEast() + 0.05, b.getNorth() + 0.05],
 			Math.round(map.getZoom())
 		);
+		// eslint-disable-next-line svelte/prefer-svelte-reactivity -- local scratch set
 		const seen = new Set<string>();
 
 		for (const f of features) {
 			const [lng, lat] = f.geometry.coordinates;
-			const props = f.properties as { cluster?: boolean; cluster_id?: number; point_count?: number; id?: string };
+			const props = f.properties as {
+				cluster?: boolean;
+				cluster_id?: number;
+				point_count?: number;
+				id?: string;
+			};
 			const key = props.cluster ? `c:${props.cluster_id}:${props.point_count}` : `s:${props.id}`;
 			seen.add(key);
 			if (markers.has(key)) continue;
@@ -107,7 +115,9 @@
 			// Staggered pop-in, capped so the whole entrance stays around a second.
 			(el.firstElementChild as HTMLElement).style.animationDelay =
 				`${Math.min(popOrder++ * 70, 700)}ms`;
-			const marker = new ml.Marker({ element: el, anchor: 'bottom' }).setLngLat([lng, lat]).addTo(map);
+			const marker = new ml.Marker({ element: el, anchor: 'bottom' })
+				.setLngLat([lng, lat])
+				.addTo(map);
 			markers.set(key, { marker, el });
 		}
 
@@ -167,7 +177,9 @@
 			map.touchZoomRotate.disableRotation();
 			map.on('load', () => {
 				// Start with the credit collapsed to its (i) button; it opens on tap.
-				container.querySelector('.maplibregl-ctrl-attrib')?.classList.remove('maplibregl-compact-show');
+				container
+					.querySelector('.maplibregl-ctrl-attrib')
+					?.classList.remove('maplibregl-compact-show');
 				renderMarkers();
 				onready?.();
 			});
@@ -227,7 +239,9 @@
 		youMarker?.remove();
 		const el = document.createElement('div');
 		el.className = 'you-dot';
-		youMarker = new ml.Marker({ element: el }).setLngLat([userLocation.lng, userLocation.lat]).addTo(map);
+		youMarker = new ml.Marker({ element: el })
+			.setLngLat([userLocation.lng, userLocation.lat])
+			.addTo(map);
 		const here = userLocation;
 		const nearest = untrack(() => [...spots])
 			.sort(

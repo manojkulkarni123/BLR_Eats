@@ -8,7 +8,13 @@
 	import SpotEditor from './SpotEditor.svelte';
 	import TopSpotsSheet from './TopSpotsSheet.svelte';
 	import { getTheme, swatchFor } from '#lib/theme.ts';
-	import { availableSlices, resolveSlice, spotCategoryLabel, spotEmoji, spotsInSlice } from '#lib/slices.ts';
+	import {
+		availableSlices,
+		resolveSlice,
+		spotCategoryLabel,
+		spotEmoji,
+		spotsInSlice
+	} from '#lib/slices.ts';
 	import { shareLink } from '#lib/share.ts';
 	import type { FoodMap, Spot } from '#lib/types.ts';
 
@@ -47,6 +53,8 @@
 	let celebrate: number | null = $state(null);
 
 	// Viewers: the "Make your own map" button grows after they've browsed a few spots.
+	// Plain Set on purpose: read only inside the effect below, never rendered.
+	// eslint-disable-next-line svelte/prefer-svelte-reactivity
 	const browsed = new Set<string>();
 	let curious = $state(false);
 
@@ -68,7 +76,9 @@
 	async function scrollToCard(id: string) {
 		await tick();
 		railScrolling = true;
-		rail.querySelector(`[data-id="${id}"]`)?.scrollIntoView({ behavior: 'smooth', inline: 'center', block: 'nearest' });
+		rail
+			.querySelector(`[data-id="${id}"]`)
+			?.scrollIntoView({ behavior: 'smooth', inline: 'center', block: 'nearest' });
 		setTimeout(() => (railScrolling = false), 700);
 	}
 
@@ -148,7 +158,9 @@
 
 	function shareSpot(spot: Spot) {
 		const title = `${spot.name}, ${spot.area}`;
-		const text = spot.recommendation ? `${title}: ${spot.recommendation}` : `${title}, recommended by ${name}`;
+		const text = spot.recommendation
+			? `${title}: ${spot.recommendation}`
+			: `${title}, recommended by ${name}`;
 		share(title, text, `/${handle}/spot/${spot.slug}`);
 	}
 
@@ -168,7 +180,8 @@
 		if (result.deleted) return flash('Removed');
 		if (result.savedId) {
 			const id = result.savedId;
-			if (slice && !visible.some((s) => s.id === id)) await goto(`/${handle}`, { replace: true, reset: false });
+			if (slice && !visible.some((s) => s.id === id))
+				await goto(`/${handle}`, { replace: true, reset: false });
 			selectedId = id;
 			moveCamera(id);
 			scrollToCard(id);
@@ -197,7 +210,9 @@
 	/>
 
 	<!-- Header renders on the server, so something colourful shows before the map loads. -->
-	<header class="pointer-events-none absolute inset-x-0 top-0 z-10 pt-[max(12px,env(safe-area-inset-top))]">
+	<header
+		class="pointer-events-none absolute inset-x-0 top-0 z-10 pt-[max(12px,env(safe-area-inset-top))]"
+	>
 		<div class="pointer-events-auto flex items-center gap-2 px-4 pb-2">
 			<button
 				type="button"
@@ -207,9 +222,15 @@
 				aria-expanded={isOwner ? menuOpen : undefined}
 			>
 				{#if map.profile.avatarUrl}
-					<img src={map.profile.avatarUrl} alt="" class="size-9 rounded-full border-2 border-ink object-cover" />
+					<img
+						src={map.profile.avatarUrl}
+						alt=""
+						class="size-9 rounded-full border-2 border-ink object-cover"
+					/>
 				{:else}
-					<span class="grid size-9 flex-none place-items-center rounded-full border-2 border-ink bg-accent text-lg font-extrabold text-surface">
+					<span
+						class="grid size-9 flex-none place-items-center rounded-full border-2 border-ink bg-accent text-lg font-extrabold text-surface"
+					>
 						{name.slice(0, 1).toUpperCase()}
 					</span>
 				{/if}
@@ -234,11 +255,21 @@
 		</div>
 
 		{#if menuOpen && isOwner}
-			<div class="pointer-events-auto mx-4 mb-2 flex w-60 flex-col overflow-hidden rounded-2xl border-[2.5px] border-ink bg-surface shadow-[3px_3px_0_var(--ink)]">
-				<button type="button" class="menu-item" onclick={() => ((menuOpen = false), (addingTop = true))}>
+			<div
+				class="pointer-events-auto mx-4 mb-2 flex w-60 flex-col overflow-hidden rounded-2xl border-[2.5px] border-ink bg-surface shadow-[3px_3px_0_var(--ink)]"
+			>
+				<button
+					type="button"
+					class="menu-item"
+					onclick={() => ((menuOpen = false), (addingTop = true))}
+				>
 					⚡ Add several spots
 				</button>
-				<button type="button" class="menu-item" onclick={() => ((menuOpen = false), (editing = 'new'))}>
+				<button
+					type="button"
+					class="menu-item"
+					onclick={() => ((menuOpen = false), (editing = 'new'))}
+				>
 					＋ Add one spot
 				</button>
 				<form method="POST" action="/signout">
@@ -260,7 +291,9 @@
 				<p class="text-5xl">🗺️</p>
 				{#if isOwner}
 					<h2 class="mt-2 text-2xl leading-tight font-extrabold">Your map is waiting</h2>
-					<p class="mt-1 font-semibold opacity-75">Add your go-to places. It takes about two minutes.</p>
+					<p class="mt-1 font-semibold opacity-75">
+						Add your go-to places. It takes about two minutes.
+					</p>
 					<button
 						type="button"
 						onclick={() => (addingTop = true)}
@@ -269,7 +302,9 @@
 						Add your top spots →
 					</button>
 				{:else}
-					<h2 class="mt-2 text-2xl leading-tight font-extrabold">{name} hasn't pinned anything yet</h2>
+					<h2 class="mt-2 text-2xl leading-tight font-extrabold">
+						{name} hasn't pinned anything yet
+					</h2>
 					<p class="mt-1 font-semibold opacity-75">Check back soon.</p>
 				{/if}
 			</div>
@@ -277,7 +312,7 @@
 	{/if}
 
 	<div
-		class="absolute right-4 left-4 z-10 flex items-end justify-between gap-2 bottom-[calc(228px+env(safe-area-inset-bottom))]"
+		class="absolute right-4 bottom-[calc(228px+env(safe-area-inset-bottom))] left-4 z-10 flex items-end justify-between gap-2"
 		class:hidden={map.spots.length === 0}
 	>
 		{#if isOwner}
@@ -335,7 +370,9 @@
 			<div class="sticker celebrate rounded-3xl bg-sun p-6 text-center">
 				<p class="text-5xl">🎉</p>
 				<h2 class="mt-2 text-3xl leading-none font-extrabold">Your map has {celebrate} spots</h2>
-				<p class="mt-2 font-semibold">Looks good, right? Send it to someone who keeps asking where to eat.</p>
+				<p class="mt-2 font-semibold">
+					Looks good, right? Send it to someone who keeps asking where to eat.
+				</p>
 				<button
 					type="button"
 					onclick={() => ((celebrate = null), shareScreen())}
@@ -343,7 +380,11 @@
 				>
 					Share my map ↗
 				</button>
-				<button type="button" class="mt-3 font-extrabold underline" onclick={() => (celebrate = null)}>
+				<button
+					type="button"
+					class="mt-3 font-extrabold underline"
+					onclick={() => (celebrate = null)}
+				>
 					Look around first
 				</button>
 			</div>
@@ -351,7 +392,10 @@
 	{/if}
 
 	{#if toast}
-		<div class="sticker absolute top-1/2 left-1/2 z-40 -translate-x-1/2 rounded-full bg-ink px-4 py-2 font-extrabold whitespace-nowrap text-paper" role="status">
+		<div
+			class="sticker absolute top-1/2 left-1/2 z-40 -translate-x-1/2 rounded-full bg-ink px-4 py-2 font-extrabold whitespace-nowrap text-paper"
+			role="status"
+		>
 			{toast}
 		</div>
 	{/if}

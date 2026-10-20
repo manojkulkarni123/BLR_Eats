@@ -18,12 +18,17 @@
 
 <svelte:head>
 	<title>blr_eats · Your Bangalore food map</title>
-	<meta name="description" content="Pin the places you love to eat in Bangalore and share them as one colourful map." />
+	<meta
+		name="description"
+		content="Pin the places you love to eat in Bangalore and share them as one colourful map."
+	/>
 	<meta property="og:title" content="blr_eats · Your Bangalore food map" />
 	<meta property="og:description" content="Stop sending food lists. Share a map." />
 </svelte:head>
 
-<main class="relative mx-auto flex min-h-dvh max-w-md flex-col justify-center gap-6 overflow-hidden px-6 py-12">
+<main
+	class="relative mx-auto flex min-h-dvh max-w-md flex-col justify-center gap-6 overflow-hidden px-6 py-12"
+>
 	<div class="pointer-events-none relative h-32" aria-hidden="true">
 		{#each stickers as s (s.e)}
 			<span
@@ -40,18 +45,24 @@
 			Stop sending<br />food <span class="strike">lists</span>.
 		</h1>
 		<p class="text-xl font-semibold opacity-80">
-			Pin your favourite Bangalore spots and share them as one colourful map. Your friends tap a spot and go
-			eat.
+			Pin your favourite Bangalore spots and share them as one colourful map. Your friends tap a
+			spot and go eat.
 		</p>
 	</div>
 
 	<div class="relative flex flex-col gap-3">
 		{#if data.me?.handle}
-			<a href="/{data.me.handle}" class="sticker rounded-full bg-sun py-3 text-center text-xl font-extrabold">
+			<a
+				href="/{data.me.handle}"
+				class="sticker rounded-full bg-sun py-3 text-center text-xl font-extrabold"
+			>
 				Open my map →
 			</a>
 		{:else if data.me}
-			<a href="/welcome" class="sticker rounded-full bg-sun py-3 text-center text-xl font-extrabold">
+			<a
+				href="/welcome"
+				class="sticker rounded-full bg-sun py-3 text-center text-xl font-extrabold"
+			>
 				Finish making my map →
 			</a>
 		{:else}

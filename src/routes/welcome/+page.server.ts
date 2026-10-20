@@ -15,8 +15,12 @@ export const actions: Actions = {
 		if (!user) redirect(303, '/');
 
 		const form = await request.formData();
-		const handle = String(form.get('handle') ?? '').trim().toLowerCase();
-		const displayName = String(form.get('name') ?? '').trim().slice(0, 40);
+		const handle = String(form.get('handle') ?? '')
+			.trim()
+			.toLowerCase();
+		const displayName = String(form.get('name') ?? '')
+			.trim()
+			.slice(0, 40);
 
 		const problem = handleProblem(handle);
 		if (problem) return fail(400, { handle, displayName, error: problem });

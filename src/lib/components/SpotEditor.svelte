@@ -31,7 +31,14 @@
 	const initial = untrack(() => spot);
 	let place: Place | null = $state(
 		initial
-			? { name: initial.name, lat: initial.lat, lng: initial.lng, area: initial.area, osmId: '', suggestedCategory: null }
+			? {
+					name: initial.name,
+					lat: initial.lat,
+					lng: initial.lng,
+					area: initial.area,
+					osmId: '',
+					suggestedCategory: null
+				}
 			: null
 	);
 	let manual = $state(false);
@@ -110,9 +117,10 @@
 			if (newFiles.length) await addPhotos(ownerId, id, newFiles, keptPhotos.length);
 			await ondone({ savedId: id });
 		} catch (e) {
-			error = e instanceof Error && /reel_url/.test(e.message)
-				? 'The reel link should start with https://www.instagram.com/'
-				: 'Couldn’t save. Check your connection and try again';
+			error =
+				e instanceof Error && /reel_url/.test(e.message)
+					? 'The reel link should start with https://www.instagram.com/'
+					: 'Couldn’t save. Check your connection and try again';
 			busy = false;
 		}
 	}
@@ -140,7 +148,11 @@
 					class="sticker rounded-2xl bg-surface px-4 py-3 text-lg font-semibold outline-none"
 				/>
 				<p class="font-semibold opacity-70">Now find its area or the nearest landmark:</p>
-				<PlaceSearch onpick={choosePlace} placeholder="e.g. Indiranagar 12th Main" autofocus={false} />
+				<PlaceSearch
+					onpick={choosePlace}
+					placeholder="e.g. Indiranagar 12th Main"
+					autofocus={false}
+				/>
 			</div>
 		{:else}
 			<PlaceSearch onpick={choosePlace} />
@@ -162,11 +174,18 @@
 
 			<div class="flex flex-col gap-1.5">
 				<span class="font-extrabold">What kind of place?</span>
-				<CategoryPicker value={pick} {customCategories} onchange={(v) => (pick = v)} oncreate={newCategory} />
+				<CategoryPicker
+					value={pick}
+					{customCategories}
+					onchange={(v) => (pick = v)}
+					oncreate={newCategory}
+				/>
 			</div>
 
 			<label class="flex flex-col gap-1">
-				<span class="font-extrabold">What should people get? <span class="font-semibold opacity-50">(optional)</span></span>
+				<span class="font-extrabold"
+					>What should people get? <span class="font-semibold opacity-50">(optional)</span></span
+				>
 				<textarea
 					bind:value={recommendation}
 					maxlength="200"
@@ -177,17 +196,24 @@
 			</label>
 
 			<div class="flex flex-col gap-1.5">
-				<span class="font-extrabold">Photos <span class="font-semibold opacity-50">(optional)</span></span>
+				<span class="font-extrabold"
+					>Photos <span class="font-semibold opacity-50">(optional)</span></span
+				>
 				<div class="flex flex-wrap gap-2">
 					{#each keptPhotos as p (p.id)}
 						<div class="relative">
-							<img src={p.thumbUrl} alt="" class="size-20 rounded-xl border-2 border-ink object-cover" />
+							<img
+								src={p.thumbUrl}
+								alt=""
+								class="size-20 rounded-xl border-2 border-ink object-cover"
+							/>
 							<button
 								type="button"
 								aria-label="Remove photo"
 								onclick={() => (keptPhotos = keptPhotos.filter((k) => k.id !== p.id))}
 								class="absolute -top-2 -right-2 grid size-7 place-items-center rounded-full border-2 border-ink bg-surface text-sm font-extrabold"
-							>✕</button>
+								>✕</button
+							>
 						</div>
 					{/each}
 					{#each previews as src, i (src)}
@@ -198,11 +224,14 @@
 								aria-label="Remove photo"
 								onclick={() => removeNew(i)}
 								class="absolute -top-2 -right-2 grid size-7 place-items-center rounded-full border-2 border-ink bg-surface text-sm font-extrabold"
-							>✕</button>
+								>✕</button
+							>
 						</div>
 					{/each}
 					{#if photoCount < MAX_PHOTOS}
-						<label class="grid size-20 cursor-pointer place-items-center rounded-xl border-2 border-dashed border-ink bg-surface text-3xl">
+						<label
+							class="grid size-20 cursor-pointer place-items-center rounded-xl border-2 border-dashed border-ink bg-surface text-3xl"
+						>
 							📷
 							<input type="file" accept="image/*" multiple class="sr-only" onchange={onFiles} />
 						</label>
@@ -221,7 +250,11 @@
 					/>
 				</label>
 			{:else}
-				<button type="button" class="self-start font-extrabold underline" onclick={() => (showReel = true)}>
+				<button
+					type="button"
+					class="self-start font-extrabold underline"
+					onclick={() => (showReel = true)}
+				>
 					＋ Link your Instagram reel
 				</button>
 			{/if}
@@ -233,11 +266,21 @@
 		{#if place}
 			<div class="flex gap-2">
 				{#if spot}
-					<button type="button" disabled={busy} onclick={remove} class="sticker rounded-full bg-surface px-4 py-3 font-extrabold">
+					<button
+						type="button"
+						disabled={busy}
+						onclick={remove}
+						class="sticker rounded-full bg-surface px-4 py-3 font-extrabold"
+					>
 						Remove
 					</button>
 				{:else}
-					<button type="button" disabled={busy} onclick={() => (place = null)} class="sticker rounded-full bg-surface px-4 py-3 font-extrabold">
+					<button
+						type="button"
+						disabled={busy}
+						onclick={() => (place = null)}
+						class="sticker rounded-full bg-surface px-4 py-3 font-extrabold"
+					>
 						Back
 					</button>
 				{/if}

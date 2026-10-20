@@ -7,7 +7,9 @@
 	const title = $derived(
 		data.slice ? `${name}'s ${data.slice.label} spots in Bangalore` : `${name}'s Bangalore food map`
 	);
-	const description = $derived(`${data.count} spots, picked by ${name}. Tap a spot to go eat there.`);
+	const description = $derived(
+		`${data.count} spots, picked by ${name}. Tap a spot to go eat there.`
+	);
 </script>
 
 <ShareMeta

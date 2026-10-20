@@ -10,7 +10,11 @@
 		{page.status === 404 ? (page.error?.message ?? 'Nothing here') : 'Something went wrong'}
 	</h1>
 	<p class="text-lg font-semibold opacity-75">
-		{page.status === 404 ? 'The link might be old, or the spot was removed.' : 'Give it another try in a moment.'}
+		{page.status === 404
+			? 'The link might be old, or the spot was removed.'
+			: 'Give it another try in a moment.'}
 	</p>
-	<a href="/" class="sticker mt-2 rounded-full bg-sun py-3 text-xl font-extrabold">Go to blr_eats →</a>
+	<a href="/" class="sticker mt-2 rounded-full bg-sun py-3 text-xl font-extrabold"
+		>Go to blr_eats →</a
+	>
 </main>
