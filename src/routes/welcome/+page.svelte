@@ -7,7 +7,7 @@
 	let { data, form }: PageProps = $props();
 	// Start from the last attempt, or a suggestion from the email address.
 	let handle = $state(untrack(() => form?.handle ?? data.suggestion));
-	let name = $state(untrack(() => form?.displayName ?? ''));
+	let name = $state(untrack(() => form?.displayName ?? data.name));
 	let busy = $state(false);
 </script>
 

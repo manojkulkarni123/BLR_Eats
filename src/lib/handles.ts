@@ -37,8 +37,9 @@ export function handleProblem(handle: string): string | null {
 	return null;
 }
 
-export function suggestHandle(email: string): string {
-	const base = email
+/** A handle from a first name or an email address. */
+export function suggestHandle(source: string): string {
+	const base = source
 		.split('@')[0]
 		.toLowerCase()
 		.replace(/[^a-z0-9_]/g, '')

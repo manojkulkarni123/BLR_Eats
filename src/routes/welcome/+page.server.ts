@@ -6,7 +6,11 @@ export const load: PageServerLoad = async ({ parent }) => {
 	const { me } = await parent();
 	if (!me) redirect(303, '/');
 	if (me.handle) redirect(303, `/${me.handle}`);
-	return { suggestion: suggestHandle(me.email) };
+	const firstName = me.accountName?.split(' ')[0] ?? '';
+	return {
+		name: me.accountName ?? '',
+		suggestion: suggestHandle(firstName.length >= 3 ? firstName : me.email)
+	};
 };
 
 export const actions: Actions = {

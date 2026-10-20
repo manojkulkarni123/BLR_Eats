@@ -13,6 +13,9 @@ export const load: LayoutServerLoad = async ({ locals }) => {
 		me: {
 			id: user.id,
 			email: user.email ?? '',
+			// Name from the Google account, used to prefill /welcome.
+			accountName:
+				((user.user_metadata?.full_name ?? user.user_metadata?.name) as string | undefined) ?? null,
 			handle: (data?.handle as string | undefined) ?? null,
 			displayName: (data?.display_name as string | undefined) ?? null
 		}
