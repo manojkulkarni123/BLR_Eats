@@ -33,7 +33,7 @@ export async function getMap(supabase: SupabaseClient, handle: string): Promise<
 
 	const { data: profile } = await supabase
 		.from('profiles')
-		.select('id, handle, display_name, avatar_path, bio, theme')
+		.select('id, handle, display_name, avatar_path, bio, instagram, theme')
 		.eq('handle', key)
 		.maybeSingle();
 	if (!profile) return null;
@@ -57,6 +57,7 @@ export async function getMap(supabase: SupabaseClient, handle: string): Promise<
 			displayName: profile.display_name,
 			avatarUrl: profile.avatar_path ? photoUrl(profile.avatar_path) : null,
 			bio: profile.bio,
+			instagram: profile.instagram,
 			theme: profile.theme
 		},
 		spots: (spots.data ?? []).map((s) => ({

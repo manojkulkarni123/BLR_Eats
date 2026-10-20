@@ -133,7 +133,7 @@ export async function createCustomCategory(
 
 export async function updateProfile(
 	ownerId: string,
-	patch: { display_name?: string; bio?: string | null }
+	patch: { display_name?: string; bio?: string | null; instagram?: string | null }
 ) {
 	const { error } = await supabase().from('profiles').update(patch).eq('id', ownerId);
 	fail(error);

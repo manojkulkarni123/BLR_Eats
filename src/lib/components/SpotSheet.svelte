@@ -2,6 +2,7 @@
 	import { untrack } from 'svelte';
 	import Sheet from './Sheet.svelte';
 	import { directionsUrl } from '#lib/share.ts';
+	import { instagramUrl } from '#lib/instagram.ts';
 	import type { Spot } from '#lib/types.ts';
 
 	// Everything about one spot: all photos, the full recommendation, the reel, and actions.
@@ -11,11 +12,14 @@
 		label: string;
 		swatch: { bg: string; on: string };
 		recommendedBy: string;
+		/** The map owner's Instagram username, linked under the recommendation. */
+		instagram?: string | null;
 		onclose: () => void;
 		onshare: () => void;
 		onedit?: () => void;
 	};
-	let { spot, emoji, label, swatch, recommendedBy, onclose, onshare, onedit }: Props = $props();
+	let { spot, emoji, label, swatch, recommendedBy, instagram, onclose, onshare, onedit }: Props =
+		$props();
 
 	let viewing: number | null = $state(null);
 	let strip: HTMLDivElement | undefined = $state();
@@ -86,7 +90,17 @@
 		{#if spot.recommendation}
 			<blockquote class="sticker rounded-3xl bg-surface p-4">
 				<p class="text-lg leading-snug font-semibold whitespace-pre-line">{spot.recommendation}</p>
-				<footer class="mt-2 text-sm font-extrabold opacity-60">— {recommendedBy}</footer>
+				<footer class="mt-2 text-sm font-extrabold">
+					<span class="opacity-60">— {recommendedBy}</span>
+					{#if instagram}
+						<a
+							href={instagramUrl(instagram)}
+							target="_blank"
+							rel="noopener noreferrer"
+							class="ml-1 text-accent underline">@{instagram}</a
+						>
+					{/if}
+				</footer>
 			</blockquote>
 		{/if}
 

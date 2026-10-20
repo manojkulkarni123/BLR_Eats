@@ -8,6 +8,9 @@
 	import SpotEditor from './SpotEditor.svelte';
 	import TopSpotsSheet from './TopSpotsSheet.svelte';
 	import SpotSheet from './SpotSheet.svelte';
+	import ProfileSheet from './ProfileSheet.svelte';
+	import InstagramIcon from './InstagramIcon.svelte';
+	import { instagramUrl } from '#lib/instagram.ts';
 	import { getTheme, swatchFor } from '#lib/theme.ts';
 	import {
 		availableSlices,
@@ -75,6 +78,7 @@
 	let editing: Spot | 'new' | null = $state(null);
 	let addingTop = $state(false);
 	let menuOpen = $state(false);
+	let editingProfile = $state(false);
 	let celebrate: number | null = $state(null);
 
 	// Where the map is looking: biases place search, and is where a dropped pin lands.
@@ -300,11 +304,24 @@
 					</span>
 				</span>
 			</button>
+			{#if map.profile.instagram}
+				<a
+					href={instagramUrl(map.profile.instagram)}
+					target="_blank"
+					rel="noopener noreferrer"
+					aria-label="{name} on Instagram"
+					title="@{map.profile.instagram} on Instagram"
+					class="sticker ig ml-auto grid size-11 flex-none place-items-center rounded-full text-surface active:translate-y-px"
+				>
+					<InstagramIcon class="size-6" />
+				</a>
+			{/if}
 			{#if map.spots.length}
 				<button
 					type="button"
 					onclick={shareScreen}
-					class="sticker ml-auto flex-none rounded-full bg-sun px-4 py-2 text-[16px] font-extrabold active:translate-y-px"
+					class="sticker flex-none rounded-full bg-sun px-4 py-2 text-[16px] font-extrabold active:translate-y-px"
+					class:ml-auto={!map.profile.instagram}
 				>
 					Share ↗
 				</button>
@@ -328,6 +345,13 @@
 					onclick={() => ((menuOpen = false), (editing = 'new'))}
 				>
 					＋ Add one spot
+				</button>
+				<button
+					type="button"
+					class="menu-item"
+					onclick={() => ((menuOpen = false), (editingProfile = true))}
+				>
+					✏️ Edit profile & Instagram
 				</button>
 				<form method="POST" action="/signout">
 					<button class="menu-item w-full">👋 Sign out</button>
@@ -510,6 +534,7 @@
 		label={spotCategoryLabel(map, spot)}
 		swatch={swatchFor(theme, spot.category)}
 		recommendedBy={name}
+		instagram={map.profile.instagram}
 		onclose={closeSheet}
 		onshare={() => shareSpot(spot)}
 		onedit={isOwner
@@ -533,6 +558,17 @@
 			ondone={afterEdit}
 		/>
 	</div>
+{/if}
+{#if isOwner && editingProfile}
+	<ProfileSheet
+		profile={map.profile}
+		onclose={() => (editingProfile = false)}
+		ondone={async () => {
+			await refreshAll();
+			editingProfile = false;
+			flash('Profile saved');
+		}}
+	/>
 {/if}
 {#if isOwner && me && addingTop}
 	<TopSpotsSheet
@@ -574,6 +610,10 @@
 	.cta.curious {
 		padding: 0.55rem 1.1rem;
 		font-size: 17px;
+	}
+	/* Instagram's own warm gradient, so the button reads as Instagram at a glance. */
+	.ig {
+		background: linear-gradient(45deg, #feda75, #fa7e1e 30%, #d62976 60%, #962fbf 85%, #4f5bd5);
 	}
 	.celebrate {
 		animation: pop-in 480ms cubic-bezier(0.34, 1.56, 0.64, 1) both;

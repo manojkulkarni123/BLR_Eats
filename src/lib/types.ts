@@ -6,6 +6,8 @@ export type Profile = {
 	displayName: string;
 	avatarUrl: string | null;
 	bio: string | null;
+	/** Instagram username, without the @. */
+	instagram: string | null;
 	theme: string;
 };
 

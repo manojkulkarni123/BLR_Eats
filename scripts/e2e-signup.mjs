@@ -149,6 +149,14 @@ try {
 	await page.getByText(/Spot #\d+ added/).waitFor({ timeout: 15000 });
 	step('pinned an unlisted place at my exact location');
 
+	// Profile: paste a full Instagram link; the map shows a follow button for it.
+	await page.click('text=· your map');
+	await page.click('text=Edit profile & Instagram');
+	await page.fill('input[placeholder^="@yourname"]', 'https://www.instagram.com/blr.eats_test/');
+	await page.click('button:has-text("Save")');
+	await page.getByText('Profile saved').waitFor({ timeout: 15000 });
+	step('saved an Instagram link in the profile');
+
 	const { data: spots } = await admin
 		.from('spots')
 		.select('name, area, category, recommendation')
@@ -166,6 +174,10 @@ try {
 	const hits = await visitor.locator('[data-id]').count();
 	if (hits !== 1) throw new Error(`search "chocolate" should find 1 spot, found ${hits}`);
 	step('visitor search finds a spot by words in its tip');
+	const ig = await visitor.locator('a[aria-label$="on Instagram"]').getAttribute('href');
+	if (ig !== 'https://www.instagram.com/blr.eats_test/')
+		throw new Error(`Instagram button href: ${ig}`);
+	step('visitor sees the Instagram button → @blr.eats_test');
 	step(`visitor view of /${handle}`);
 } catch (e) {
 	await shot('error');

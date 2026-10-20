@@ -131,6 +131,7 @@ export const seedMaps: Record<string, FoodMap> = {
 			displayName: 'Demo',
 			avatarUrl: null,
 			bio: 'Dosa first, questions later.',
+			instagram: null,
 			theme: 'namma-pop'
 		},
 		spots: seedSpots.map(toSpot),
