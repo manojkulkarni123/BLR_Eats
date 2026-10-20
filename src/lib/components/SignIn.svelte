@@ -11,7 +11,8 @@
 
 	onMount(() => {
 		const ua = navigator.userAgent;
-		const webview = /Instagram|FBAN|FBAV|FB_IAB|FBIOS|Line\/|Snapchat|LinkedInApp|Twitter|; wv\)/i.test(ua);
+		const webview =
+			/Instagram|FBAN|FBAV|FB_IAB|FBIOS|Line\/|Snapchat|LinkedInApp|Twitter|; wv\)/i.test(ua);
 		if (webview) inApp = /Android/i.test(ua) ? 'android' : 'ios';
 	});
 
