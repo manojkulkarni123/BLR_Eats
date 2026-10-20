@@ -126,14 +126,16 @@ export function buildMapStyle(theme: Theme): StyleSpecification {
 				layout: {
 					'text-field': ['coalesce', ['get', 'name:en'], ['get', 'name']],
 					'text-font': ['Noto Sans Bold'],
-					'text-size': ['interpolate', ['linear'], ['zoom'], 11, 11, 15, 15],
+					'text-size': ['interpolate', ['linear'], ['zoom'], 11, 10, 15, 14],
 					'text-transform': 'uppercase',
 					'text-letter-spacing': 0.08,
-					'text-max-width': 8
+					'text-max-width': 8,
+					// Generous spacing so only a few area names show: a backdrop, not a street map.
+					'text-padding': 40
 				},
 				paint: {
 					'text-color': m.label,
-					'text-opacity': 0.55,
+					'text-opacity': 0.4,
 					'text-halo-color': m.labelHalo,
 					'text-halo-width': 1.5
 				}

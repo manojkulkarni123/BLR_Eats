@@ -124,10 +124,11 @@ function toSpot(s: SeedSpot, i: number): Spot {
 }
 
 export const seedMaps: Record<string, FoodMap> = {
-	manoj: {
+	demo: {
 		profile: {
-			handle: 'manoj',
-			displayName: 'Manoj',
+			id: 'demo',
+			handle: 'demo',
+			displayName: 'Demo',
 			avatarUrl: null,
 			bio: 'Dosa first, questions later.',
 			theme: 'namma-pop'

@@ -1,6 +1,6 @@
 @import 'tailwindcss';
 
-@theme {
+@theme inline {
 	--font-display: 'Baloo 2', ui-rounded, system-ui, sans-serif;
 	--color-ink: var(--ink);
 	--color-paper: var(--paper);

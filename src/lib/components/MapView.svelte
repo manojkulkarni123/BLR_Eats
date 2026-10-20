@@ -128,7 +128,7 @@
 
 	async function loadIndex(list: Spot[]) {
 		const { default: SC } = await import('supercluster');
-		index = new SC({ radius: 56, maxZoom: 16 });
+		index = new SC({ radius: 34, maxZoom: 16 });
 		index.load(
 			list.map((s) => ({
 				type: 'Feature' as const,
@@ -141,13 +141,16 @@
 	onMount(() => {
 		let cancelled = false;
 		(async () => {
-			const [maplibre] = await Promise.all([
+			const [maplibre, worker] = await Promise.all([
 				import('maplibre-gl'),
+				// MapLibre computes its worker URL at runtime, which bundlers can't follow.
+				import('maplibre-gl/dist/maplibre-gl-worker.mjs?url'),
 				import('maplibre-gl/dist/maplibre-gl.css'),
 				loadIndex(spots)
 			]);
 			if (cancelled) return;
 			ml = maplibre;
+			ml.setWorkerUrl(worker.default);
 			const first = frame.length ? frame : spots;
 			map = new ml.Map({
 				container,
@@ -163,6 +166,8 @@
 			});
 			map.touchZoomRotate.disableRotation();
 			map.on('load', () => {
+				// Start with the credit collapsed to its (i) button; it opens on tap.
+				container.querySelector('.maplibregl-ctrl-attrib')?.classList.remove('maplibregl-compact-show');
 				renderMarkers();
 				onready?.();
 			});
@@ -318,5 +323,10 @@
 	}
 	:global(.maplibregl-ctrl-attrib) {
 		font-family: system-ui, sans-serif;
+	}
+	/* Keep the map credit clear of the card rail: just under the filter chips. */
+	:global(.maplibregl-ctrl-bottom-right) {
+		top: calc(120px + env(safe-area-inset-top));
+		bottom: auto;
 	}
 </style>

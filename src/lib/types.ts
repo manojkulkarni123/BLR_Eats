@@ -1,6 +1,7 @@
 import type { CategoryKey } from './categories.ts';
 
 export type Profile = {
+	id: string;
 	handle: string;
 	displayName: string;
 	avatarUrl: string | null;
@@ -28,7 +29,7 @@ export type Spot = {
 	customCategoryId: string | null;
 	recommendation: string | null;
 	reelUrl: string | null;
-	photos: { url: string; width: number; height: number }[];
+	photos: { id: string; url: string; thumbUrl: string; width: number; height: number }[];
 };
 
 export type FoodMap = {
