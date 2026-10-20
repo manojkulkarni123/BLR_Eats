@@ -4,6 +4,9 @@ import { sveltekit } from '@sveltejs/kit/vite';
 import { defineConfig } from 'vite';
 
 export default defineConfig({
+	// The link-preview renderer ships a native binary; load it from node_modules as-is.
+	ssr: { external: ['@resvg/resvg-js'] },
+	optimizeDeps: { exclude: ['@resvg/resvg-js'] },
 	plugins: [
 		tailwindcss(),
 		sveltekit({

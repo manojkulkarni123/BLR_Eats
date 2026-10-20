@@ -1,4 +1,5 @@
 <script lang="ts">
+	import ShareMeta from '#lib/components/ShareMeta.svelte';
 	import type { PageProps } from './$types';
 
 	let { data }: PageProps = $props();
@@ -9,9 +10,9 @@
 	const description = $derived(`${data.count} spots, picked by ${name}. Tap a spot to go eat there.`);
 </script>
 
-<svelte:head>
-	<title>{title}</title>
-	<meta name="description" content={description} />
-	<meta property="og:title" content={title} />
-	<meta property="og:description" content={description} />
-</svelte:head>
+<ShareMeta
+	{title}
+	{description}
+	handle={data.map.profile.handle}
+	query={data.slice ? `?slice=${data.slice.slug}` : ''}
+/>

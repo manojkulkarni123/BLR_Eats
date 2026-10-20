@@ -1,0 +1,14 @@
+{
+	"name": "blr_eats",
+	"short_name": "blr_eats",
+	"description": "Your Bangalore food map. Pin your favourite spots and share them as one link.",
+	"start_url": "/",
+	"display": "standalone",
+	"background_color": "#FFF3D6",
+	"theme_color": "#FFF3D6",
+	"icons": [
+		{ "src": "/icon-192.png", "sizes": "192x192", "type": "image/png" },
+		{ "src": "/icon-512.png", "sizes": "512x512", "type": "image/png" },
+		{ "src": "/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+	]
+}

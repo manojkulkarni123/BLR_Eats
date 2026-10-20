@@ -11,6 +11,10 @@
 
 <svelte:head>
 	<link rel="icon" href={favicon} />
+	<link rel="apple-touch-icon" href="/apple-touch-icon.png" />
+	<link rel="manifest" href="/manifest.webmanifest" />
+	<meta name="apple-mobile-web-app-capable" content="yes" />
+	<meta name="apple-mobile-web-app-title" content="blr_eats" />
 	<link rel="preconnect" href="https://tiles.openfreemap.org" crossorigin="anonymous" />
 	<meta name="theme-color" content={nammaPop.ui.paper} />
 </svelte:head>

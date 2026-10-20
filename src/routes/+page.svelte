@@ -8,11 +8,11 @@
 
 	// Decorative stickers floating around the headline.
 	const stickers = [
-		{ e: '🥞', bg: '#FFBE0B', x: '6%', y: '8%', r: -12, d: 0 },
-		{ e: '🍜', bg: '#FF8FAB', x: '78%', y: '5%', r: 10, d: 120 },
-		{ e: '🍛', bg: '#FB5607', x: '84%', y: '30%', r: -8, d: 240 },
-		{ e: '☕', bg: '#B5651D', x: '2%', y: '34%', r: 14, d: 360 },
-		{ e: '🍺', bg: '#00B4D8', x: '70%', y: '52%', r: -14, d: 480 }
+		{ e: '🥞', bg: '#FFBE0B', x: '0%', y: '38%', r: -12, d: 0 },
+		{ e: '🍜', bg: '#FF8FAB', x: '22%', y: '0%', r: 10, d: 120 },
+		{ e: '🍛', bg: '#FB5607', x: '44%', y: '45%', r: -8, d: 240 },
+		{ e: '☕', bg: '#B5651D', x: '64%', y: '6%', r: 14, d: 360 },
+		{ e: '🍺', bg: '#00B4D8', x: '82%', y: '42%', r: -14, d: 480 }
 	];
 </script>
 
@@ -24,7 +24,7 @@
 </svelte:head>
 
 <main class="relative mx-auto flex min-h-dvh max-w-md flex-col justify-center gap-6 overflow-hidden px-6 py-12">
-	<div class="pointer-events-none absolute inset-0" aria-hidden="true">
+	<div class="pointer-events-none relative h-32" aria-hidden="true">
 		{#each stickers as s (s.e)}
 			<span
 				class="float sticker absolute grid size-14 place-items-center rounded-full text-3xl"
@@ -35,7 +35,7 @@
 		{/each}
 	</div>
 
-	<div class="relative mt-28 flex flex-col gap-4">
+	<div class="relative flex flex-col gap-4">
 		<h1 class="text-[56px] leading-[0.9] font-extrabold">
 			Stop sending<br />food <span class="strike">lists</span>.
 		</h1>
@@ -63,6 +63,7 @@
 		<a href="/demo" class="text-center font-extrabold underline decoration-2 underline-offset-4">
 			Peek at a demo map
 		</a>
+		<a href="/privacy" class="text-center text-sm font-semibold opacity-60">Privacy</a>
 	</div>
 </main>
 

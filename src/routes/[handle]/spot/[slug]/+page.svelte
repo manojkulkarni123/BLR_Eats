@@ -1,4 +1,5 @@
 <script lang="ts">
+	import ShareMeta from '#lib/components/ShareMeta.svelte';
 	import type { PageProps } from './$types';
 
 	let { data }: PageProps = $props();
@@ -8,9 +9,4 @@
 	);
 </script>
 
-<svelte:head>
-	<title>{title}</title>
-	<meta name="description" content={description} />
-	<meta property="og:title" content={title} />
-	<meta property="og:description" content={description} />
-</svelte:head>
+<ShareMeta {title} {description} handle={data.map.profile.handle} query="?spot={data.spot.slug}" />
