@@ -5,7 +5,7 @@ import { chromium, devices } from 'playwright-core';
 import { createClient } from '@supabase/supabase-js';
 
 const out = process.argv[2] ?? '.';
-const base = 'http://localhost:5173';
+const base = process.env.BASE_URL ?? 'http://localhost:5173';
 const admin = createClient(process.env.PUBLIC_SUPABASE_URL, process.env.SUPABASE_SECRET_KEY, {
 	auth: { persistSession: false }
 });
