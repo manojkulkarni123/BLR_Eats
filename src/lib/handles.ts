@@ -6,6 +6,7 @@ const RESERVED = new Set([
 	'app',
 	'auth',
 	'demo',
+	'design',
 	'help',
 	'login',
 	'logout',

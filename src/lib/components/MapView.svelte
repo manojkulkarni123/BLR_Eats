@@ -23,6 +23,8 @@
 		onmove?: (centre: { lat: number; lng: number }) => void;
 		/** A spot pop-up covers the lower part of the screen: keep spots above it. */
 		sheetOpen?: boolean;
+		/** Custom marker markup (design previews, new themes); the emoji sticker otherwise. */
+		pinMarkup?: (spot: Spot) => string;
 	};
 
 	let {
@@ -36,7 +38,8 @@
 		onselect,
 		onready,
 		onmove,
-		sheetOpen = false
+		sheetOpen = false,
+		pinMarkup
 	}: Props = $props();
 
 	let container: HTMLDivElement;
@@ -85,7 +88,9 @@
 		el.style.setProperty('--bg', bg);
 		el.style.setProperty('--on', on);
 		el.setAttribute('aria-label', spot.name);
-		el.innerHTML = `<span class="pin-pop"><span class="pin-body"><span class="pin-emoji">${emojiFor(spot)}</span></span></span>`;
+		el.innerHTML = pinMarkup
+			? `<span class="pin-pop">${pinMarkup(spot)}</span>`
+			: `<span class="pin-pop"><span class="pin-body"><span class="pin-emoji">${emojiFor(spot)}</span></span></span>`;
 		el.addEventListener('click', (e) => {
 			e.stopPropagation();
 			onselect(spot.id);

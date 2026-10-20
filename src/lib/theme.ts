@@ -77,7 +77,53 @@ export const nammaPop: Theme = {
 	wildcard: { bg: WHITE, on: INK }
 };
 
-export const themes: Record<string, Theme> = { [nammaPop.id]: nammaPop };
+// "Bengaluru poster" (design preview): risograph spot inks on cream paper, quiet roads so
+// the illustrated pins carry the colour.
+const POSTER_INK = '#1F1A2E';
+export const bengaluruPoster: Theme = {
+	id: 'bengaluru-poster',
+	ui: {
+		ink: POSTER_INK,
+		paper: '#F4EAD5',
+		surface: '#FFFDF6',
+		accent: '#FF48B0',
+		sun: '#FFE800'
+	},
+	map: {
+		land: '#F4EAD5',
+		residential: '#EEE1C4',
+		park: '#B9D89C',
+		wood: '#A6CF8A',
+		water: '#8DBDEB',
+		building: '#E9DABB',
+		roadMinor: '#FBF5E8',
+		roadMajor: '#F3DFB4',
+		roadMajorCasing: '#E3C68E',
+		motorway: '#F2B98A',
+		label: POSTER_INK,
+		labelHalo: '#F4EAD5'
+	},
+	categories: {
+		'south-indian': { bg: '#FFE800', on: POSTER_INK },
+		biryani: { bg: '#FF6C2F', on: POSTER_INK },
+		'north-indian': { bg: '#914E72', on: '#FFFDF6' },
+		chinese: { bg: '#00838A', on: '#FFFDF6' },
+		asian: { bg: '#FF48B0', on: POSTER_INK },
+		burgers: { bg: '#FFB511', on: POSTER_INK },
+		pizza: { bg: '#FF665E', on: POSTER_INK },
+		italian: { bg: '#00A95C', on: '#FFFDF6' },
+		'street-food': { bg: '#765BA7', on: '#FFFDF6' },
+		cafes: { bg: '#925F52', on: '#FFFDF6' },
+		desserts: { bg: '#62A8E5', on: POSTER_INK },
+		bars: { bg: '#0078BF', on: '#FFFDF6' }
+	},
+	wildcard: { bg: '#FFFDF6', on: POSTER_INK }
+};
+
+export const themes: Record<string, Theme> = {
+	[nammaPop.id]: nammaPop,
+	[bengaluruPoster.id]: bengaluruPoster
+};
 
 export function getTheme(id: string | null | undefined): Theme {
 	return (id && themes[id]) || nammaPop;
