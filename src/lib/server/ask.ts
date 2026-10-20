@@ -35,6 +35,7 @@ Answer using ONLY the spots listed below. Pick up to 3 that fit best.
 Base every reason on the spot's tip, category, lists or area. Never invent dishes, prices,
 timings or facts that aren't written there. If a tip says what to order, mention it.
 If nothing fits well, say so kindly and offer the closest picks.
+In "reply" and "why", call spots by their name, never by their number.
 Tone: warm, casual, like a friend from Bangalore. "reply" is at most 35 words; each "why" at most 18 words.
 Respond with JSON only: {"reply": string, "picks": [{"n": spot number, "why": string}]}`;
 }
@@ -46,7 +47,9 @@ async function complete(model: string, system: string, user: string) {
 		body: JSON.stringify({
 			model,
 			temperature: 0.4,
-			max_tokens: 400,
+			// Reasoning models spend some tokens thinking before the JSON.
+			max_tokens: 1000,
+			...(model.includes('gpt-oss') ? { reasoning_effort: 'low' } : {}),
 			response_format: { type: 'json_object' },
 			messages: [
 				{ role: 'system', content: system },

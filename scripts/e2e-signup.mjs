@@ -207,6 +207,19 @@ try {
 	if (ig !== 'https://www.instagram.com/blr.eats_test/')
 		throw new Error(`Instagram button href: ${ig}`);
 	step('visitor sees the Instagram button → @blr.eats_test');
+
+	// Ask this map: an AI answer that only picks this map's spots.
+	await visitor.click('button[aria-label="Search this map"]');
+	await visitor.fill('input[aria-label="Search this map"]', 'something sweet for dessert');
+	await visitor.click('button[aria-label="Ask this map"]');
+	const bubble = visitor.getByRole('status').filter({ hasText: '✨' });
+	await bubble.waitFor({ timeout: 25000 });
+	const answerText = (await bubble.textContent())?.replace(/\s+/g, ' ').trim();
+	if (!/Corner House/.test(answerText ?? ''))
+		throw new Error(`Ask didn't pick the dessert spot: ${answerText}`);
+	await visitor.screenshot({ path: `${out}/e2e-10-ask.png` });
+	step('Ask "something sweet" → picked Corner House');
+	await visitor.click('button[aria-label="Close search"]');
 	await visitor.click('button[aria-expanded]');
 	await visitor.getByText('Testing every dosa in town.').waitFor({ timeout: 5000 });
 	step('visitor taps the name chip and sees photo, bio and Follow');

@@ -19,11 +19,11 @@ export const variables = defineEnvVars({
 		description: 'OpenAI-compatible base URL'
 	},
 	AI_MODEL: {
-		schema: (v) => v || 'llama-3.3-70b-versatile',
+		schema: (v) => v || 'openai/gpt-oss-120b',
 		description: 'Main model for Ask'
 	},
 	AI_FALLBACK_MODEL: {
-		schema: (v) => v || 'llama-3.1-8b-instant',
+		schema: (v) => v || 'openai/gpt-oss-20b',
 		description: 'Used when the main model is rate-limited'
 	}
 });
