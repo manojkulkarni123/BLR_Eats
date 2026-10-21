@@ -21,6 +21,11 @@ const phone = {
 	userAgent:
 		'Mozilla/5.0 (Linux; Android 14; Pixel 8) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/130.0 Mobile Safari/537.36'
 };
+// Wait for the pins, then a little longer for tiles, so a slow server never yields a blank map.
+const settle = async (page, ms) => {
+	await page.locator('.pin').first().waitFor({ timeout: 60000 });
+	await page.waitForTimeout(ms);
+};
 const save = (page, name) =>
 	page.screenshot({ path: `${out}/${name}.jpg`, type: 'jpeg', quality: 82 });
 
@@ -28,17 +33,17 @@ const save = (page, name) =>
 {
 	const page = await (await browser.newContext(phone)).newPage();
 	await page.goto(`${base}/demo`);
-	await page.waitForTimeout(5000);
+	await settle(page, 5000);
 	await save(page, 'map');
 	console.log('✓ map');
 
 	await page.goto(`${base}/demo/spot/vidyarthi-bhavan-basavanagudi`);
-	await page.waitForTimeout(4500);
+	await settle(page, 5000);
 	await save(page, 'spot');
 	console.log('✓ spot');
 
 	await page.goto(`${base}/demo`);
-	await page.waitForTimeout(3500);
+	await settle(page, 3500);
 	await page.click('button.chip.ask');
 	await page.fill('input[aria-label="Ask this map"]', 'somewhere sweet after dinner?');
 	await page.click('form button[type=submit]:has-text("Ask")');
@@ -66,7 +71,7 @@ try {
 	await page.getByText('Tell us your spots').first().waitFor();
 	await page.fill(
 		'textarea',
-		'CTR in Malleshwaram for benne dosa, go early!\nMeghana Koramangala – boneless biryani\nToit for beers\ncorner house death by chocolate 🍫'
+		'CTR in Malleshwaram for benne dosa, go early!\nMeghana Koramangala – boneless biryani\nBurma Burma Indiranagar, the khow suey\ncorner house death by chocolate 🍫'
 	);
 	await page.waitForTimeout(600);
 	await save(page, 'tell');

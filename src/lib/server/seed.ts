@@ -70,13 +70,13 @@ const seedSpots: SeedSpot[] = [
 		recommendation: 'The classic cheeseburger with a cold coffee.'
 	},
 	{
-		name: 'Toit',
+		name: 'Burma Burma',
 		area: 'Indiranagar',
-		address: '298, 100 Feet Rd',
-		lat: 12.9792,
-		lng: 77.6408,
-		category: 'bars',
-		recommendation: 'House-brewed wheat beer. Go early on weekends.'
+		address: '607, 12th Main Rd',
+		lat: 12.9704,
+		lng: 77.6447,
+		category: 'asian',
+		recommendation: 'Khow suey and the tea leaf salad. Book ahead on weekends.'
 	},
 	{
 		name: 'Corner House',

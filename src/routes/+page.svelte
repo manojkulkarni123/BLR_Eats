@@ -37,54 +37,54 @@
 		{
 			icon: 'paste',
 			title: 'Paste a list',
-			line: 'Your old WhatsApp list becomes pins.',
+			line: 'Drop in that old WhatsApp list. Every place gets a pin.',
 			...c['south-indian'],
 			href: '#paste'
 		},
 		{
 			icon: 'mic',
 			title: 'Say it',
-			line: 'Talk through your spots. We write them down.',
+			line: 'Talk through your favourites. We’ll write them down.',
 			...c.asian,
 			href: '#tell'
 		},
 		{
 			icon: 'camera',
 			title: 'Snap it',
-			line: 'Screenshots from Zomato or Instagram work too.',
+			line: 'Add screenshots from Zomato or Instagram.',
 			...c.biryani,
 			href: '#tell'
 		},
 		{
 			icon: 'slice',
 			title: 'Share a slice',
-			line: 'The whole map, just dosas, or one spot.',
+			line: 'Send the whole map, just your dosa spots, or one place.',
 			...c.desserts,
 			href: '#share'
 		},
 		{
 			icon: 'ask',
 			title: 'Ask the map',
-			line: '“Somewhere sweet after dinner?” Answered.',
+			line: 'Friends ask questions. Your picks answer.',
 			...c.italian,
 			href: '#ask'
 		},
 		{
 			icon: 'directions',
 			title: 'One-tap directions',
-			line: 'Every pin opens straight in Maps.',
+			line: 'Every pin opens straight in Google Maps.',
 			...c.burgers
 		},
 		{
 			icon: 'near',
 			title: 'Near me',
-			line: 'See which of your picks are close by.',
+			line: 'Find the picks closest to wherever you are.',
 			...c['street-food']
 		},
 		{
 			icon: 'phone',
 			title: 'No app needed',
-			line: 'Friends just open the link. No login.',
+			line: 'It’s just a link. No download, no login.',
 			...c.chinese
 		}
 	];
@@ -94,7 +94,7 @@
 		'ok my list 👇',
 		'1. CTR malleshwaram – benne dosa, go early',
 		'2. meghana koramangala boneless biryani!!',
-		'3. toit for beers',
+		'3. burma burma indiranagar – khow suey',
 		'4. corner house death by chocolate 🍫'
 	];
 
@@ -114,7 +114,7 @@
 	<title>blr_eats · Your Bangalore food map</title>
 	<meta
 		name="description"
-		content="Put your favourite Bangalore food spots on one map your friends will actually open. Paste a list, say it, or add screenshots; share one link."
+		content="Your favourite Bangalore food spots on one bright map your friends will actually open. Paste a list, say it or add screenshots, then share one link."
 	/>
 	<meta property="og:title" content="blr_eats · Your Bangalore food map" />
 	<meta property="og:description" content="Stop sending food lists. Share a map." />
@@ -144,7 +144,8 @@
 				Stop sending food <span class="strike">lists</span>.
 			</h1>
 			<p class="max-w-md text-xl leading-snug font-semibold opacity-75 md:text-2xl">
-				Put your favourite Bangalore spots on one map. Friends tap a pin, see what to order, and go.
+				Your favourite Bangalore spots on one bright, shareable map. Friends tap a pin, see what to
+				order, and go.
 			</p>
 			<div bind:this={heroCta} class="flex max-w-sm flex-col gap-3">
 				{#if signedIn}
@@ -163,7 +164,7 @@
 					See a real map first →
 				</a>
 			</div>
-			<p class="text-sm font-bold opacity-55">Free · two minutes · nothing to install</p>
+			<p class="text-sm font-bold opacity-55">Free · ready in two minutes · no app to install</p>
 		</div>
 
 		<div class="hero-visual relative mx-auto w-full max-w-[460px]">
@@ -226,8 +227,8 @@
 			<p class="kicker">Got a list?</p>
 			<h2 class="title h2 font-black">Paste the one you already sent.</h2>
 			<p class="lede">
-				That WhatsApp message with your 12 places? Drop it in. We find every spot, pick the right
-				branch and keep your tips.
+				That WhatsApp message with your twelve favourites? Paste it in. We find each place, pick the
+				right branch and keep every tip you wrote.
 			</p>
 		</div>
 		<div class="flex flex-col items-center justify-center gap-4 sm:flex-row sm:gap-6">
@@ -253,9 +254,9 @@
 		<div class="copy">
 			<p class="kicker">No list? No problem.</p>
 			<h2 class="title h2 font-black">Or just say it.</h2>
-			<p class="lede">Tell us your spots the way you’d tell a friend.</p>
+			<p class="lede">Tell us your spots the way you’d tell a friend. We’ll do the pinning.</p>
 			<ul class="mt-6 grid gap-3 text-lg font-bold">
-				<li class="way"><span><UiIcon name="ask" /></span> Type it like a text</li>
+				<li class="way"><span><UiIcon name="ask" /></span> Type it like a message</li>
 				<li class="way"><span><UiIcon name="mic" /></span> Say it out loud</li>
 				<li class="way">
 					<span><UiIcon name="camera" /></span> Add screenshots from Zomato or Instagram
@@ -279,7 +280,8 @@
 			<p class="kicker">Then share it</p>
 			<h2 class="title h2 font-black">One link. They’re in.</h2>
 			<p class="lede">
-				Send your whole map, just your dosa spots, or one place. No app, no login. It just opens.
+				Share the whole map, just your dosa spots, or a single place. It opens in any browser, with
+				nothing to download and no sign-up.
 			</p>
 		</div>
 		<div class="flex justify-center">
@@ -310,11 +312,11 @@
 	<!-- 4. Ask -->
 	<section id="ask" class="feature flip">
 		<div class="copy">
-			<p class="kicker">Built in</p>
+			<p class="kicker">Ask the map</p>
 			<h2 class="title h2 font-black">They can ask it things.</h2>
 			<p class="lede">
-				“Somewhere sweet after dinner?” Answers come only from your spots and your tips. It never
-				makes places up.
+				“Somewhere sweet after dinner?” Every answer comes from your spots and your tips, so it only
+				ever sends friends where you would.
 			</p>
 		</div>
 		<div class="flex justify-center">
@@ -338,12 +340,12 @@
 				<li>
 					<InstagramIcon class="size-7" />
 					<p class="mt-2 text-lg font-extrabold">A Follow button</p>
-					<p class="font-semibold opacity-70">on your map, and your name on every tip.</p>
+					<p class="font-semibold opacity-70">on your map and your name on every tip.</p>
 				</li>
 				<li>
 					<UiIcon name="eye" size={28} />
 					<p class="mt-2 text-lg font-extrabold">View counts</p>
-					<p class="font-semibold opacity-70">so you know what your followers open.</p>
+					<p class="font-semibold opacity-70">so you see what your followers actually open.</p>
 				</li>
 				<li>
 					<UiIcon name="link" size={28} />
@@ -357,7 +359,9 @@
 	<!-- Final call -->
 	<section class="mx-auto flex max-w-xl flex-col items-center gap-5 px-5 pt-10 pb-24 text-center">
 		<h2 class="title final font-black">Make your map. It takes two minutes.</h2>
-		<p class="text-lg font-semibold opacity-70">Start with the five places you always recommend.</p>
+		<p class="text-lg font-semibold opacity-70">
+			Start with the five places you always end up recommending.
+		</p>
 		<div class="w-full max-w-sm">
 			{#if signedIn}
 				<a href={myMap} class="btn-sun">{data.me?.handle ? 'Open my map →' : 'Finish my map →'}</a>
