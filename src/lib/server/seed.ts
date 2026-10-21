@@ -7,6 +7,7 @@ import type { FoodMap, Spot } from '#lib/types.ts';
 type SeedSpot = {
 	name: string;
 	area: string;
+	address?: string;
 	lat: number;
 	lng: number;
 	category: CategoryKey | null;
@@ -18,6 +19,7 @@ const seedSpots: SeedSpot[] = [
 	{
 		name: 'CTR',
 		area: 'Malleswaram',
+		address: '7th Cross Rd',
 		lat: 12.9984,
 		lng: 77.5697,
 		category: 'south-indian',
@@ -26,6 +28,7 @@ const seedSpots: SeedSpot[] = [
 	{
 		name: 'Vidyarthi Bhavan',
 		area: 'Basavanagudi',
+		address: '32, Gandhi Bazaar Main Rd',
 		lat: 12.9452,
 		lng: 77.5712,
 		category: 'south-indian',
@@ -34,6 +37,7 @@ const seedSpots: SeedSpot[] = [
 	{
 		name: 'MTR',
 		area: 'Lalbagh Road',
+		address: '14, Lalbagh Rd',
 		lat: 12.9551,
 		lng: 77.5856,
 		category: 'south-indian',
@@ -50,6 +54,7 @@ const seedSpots: SeedSpot[] = [
 	{
 		name: 'Meghana Foods',
 		area: 'Koramangala',
+		address: '124, 1st A Cross Rd',
 		lat: 12.9343,
 		lng: 77.6191,
 		category: 'biryani',
@@ -58,6 +63,7 @@ const seedSpots: SeedSpot[] = [
 	{
 		name: 'Truffles',
 		area: 'Koramangala',
+		address: '28, 4th B Cross Rd',
 		lat: 12.9332,
 		lng: 77.6146,
 		category: 'burgers',
@@ -66,6 +72,7 @@ const seedSpots: SeedSpot[] = [
 	{
 		name: 'Toit',
 		area: 'Indiranagar',
+		address: '298, 100 Feet Rd',
 		lat: 12.9792,
 		lng: 77.6408,
 		category: 'bars',
@@ -74,6 +81,7 @@ const seedSpots: SeedSpot[] = [
 	{
 		name: 'Corner House',
 		area: 'Residency Road',
+		address: '45/3, Residency Rd',
 		lat: 12.9667,
 		lng: 77.604,
 		category: 'desserts',
@@ -98,6 +106,7 @@ const seedSpots: SeedSpot[] = [
 	{
 		name: 'Shivaji Military Hotel',
 		area: 'Jayanagar',
+		address: '718, 45th Cross Rd',
 		lat: 12.9271,
 		lng: 77.5838,
 		category: null,
@@ -115,6 +124,7 @@ function toSpot(s: SeedSpot, i: number): Spot {
 		lng: s.lng,
 		area: s.area,
 		areaSlug: slugify(s.area),
+		address: s.address ?? '',
 		category: s.category,
 		customCategoryId: s.customCategoryId ?? null,
 		recommendation: s.recommendation,

@@ -73,7 +73,7 @@
 			</span>
 			<span class="flex items-center gap-1 opacity-70">
 				{#if look === 'poster'}<UiIcon name="near" size={16} />{:else}📍{/if}
-				{spot.area || 'Bangalore'}
+				{[spot.address, spot.area].filter(Boolean).join(' · ') || 'Bangalore'}
 			</span>
 		</div>
 		{#if lists.length}

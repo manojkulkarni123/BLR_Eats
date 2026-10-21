@@ -12,6 +12,8 @@ export type SpotInput = {
 	lat: number;
 	lng: number;
 	area: string;
+	/** Street address, when the place search knew it. */
+	address: string;
 	category: CategoryKey | null;
 	customCategoryId: string | null;
 	recommendation: string | null;
@@ -36,11 +38,13 @@ function row(ownerId: string, input: SpotInput, slug: string) {
 		lng: input.lng,
 		area: input.area.trim(),
 		area_slug: slugify(input.area),
+		address: input.address.trim().slice(0, 200),
 		category: input.category,
 		custom_category_id: input.customCategoryId,
 		recommendation: input.recommendation?.trim() || null,
 		reel_url: input.reelUrl?.trim() || null,
-		osm_id: input.osmId
+		// Places from our own index, other maps or Google links have no OSM id ("x:…").
+		osm_id: input.osmId?.startsWith('x:') ? null : input.osmId || null
 	};
 }
 

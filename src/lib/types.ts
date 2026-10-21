@@ -28,6 +28,8 @@ export type Spot = {
 	lng: number;
 	area: string;
 	areaSlug: string;
+	/** Street address, e.g. "32, Gandhi Bazaar Main Rd". Empty when unknown. */
+	address: string;
 	/** A fixed category key, or null when the spot uses a custom category. */
 	category: CategoryKey | null;
 	customCategoryId: string | null;

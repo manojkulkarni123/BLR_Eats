@@ -42,7 +42,7 @@
 					lat: initial.lat,
 					lng: initial.lng,
 					area: initial.area,
-					street: '',
+					street: initial.address,
 					osmId: '',
 					isFood: true,
 					suggestedCategory: null
@@ -163,6 +163,7 @@
 			lat: place.lat,
 			lng: place.lng,
 			area: place.area,
+			address: place.street,
 			category: pick.category,
 			customCategoryId: pick.customCategoryId,
 			recommendation: recommendation || null,

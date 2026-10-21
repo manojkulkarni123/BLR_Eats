@@ -12,6 +12,7 @@ type SpotRow = {
 	lng: number;
 	area: string;
 	area_slug: string;
+	address: string;
 	category: CategoryKey | null;
 	custom_category_id: string | null;
 	recommendation: string | null;
@@ -42,7 +43,7 @@ export async function getMap(supabase: SupabaseClient, handle: string): Promise<
 		supabase
 			.from('spots')
 			.select(
-				'id, slug, name, lat, lng, area, area_slug, category, custom_category_id, recommendation, reel_url, spot_photos (id, path, thumb_path, width, height, position)'
+				'id, slug, name, lat, lng, area, area_slug, address, category, custom_category_id, recommendation, reel_url, spot_photos (id, path, thumb_path, width, height, position)'
 			)
 			.eq('owner_id', profile.id)
 			.order('created_at', { ascending: false })
@@ -83,6 +84,7 @@ export async function getMap(supabase: SupabaseClient, handle: string): Promise<
 			lng: s.lng,
 			area: s.area,
 			areaSlug: s.area_slug,
+			address: s.address ?? '',
 			category: s.category,
 			customCategoryId: s.custom_category_id,
 			recommendation: s.recommendation,

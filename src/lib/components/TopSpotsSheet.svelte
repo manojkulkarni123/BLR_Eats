@@ -177,12 +177,12 @@
 					lat: i.lat,
 					lng: i.lng,
 					area: i.area,
+					address: i.street,
 					category: i.category,
 					customCategoryId: i.customCategoryId,
 					recommendation: i.tip.trim() || null,
 					reelUrl: null,
-					// Places from Google links or other maps have no OSM id.
-					osmId: i.osmId.startsWith('x:') ? null : i.osmId
+					osmId: i.osmId
 				})),
 				map.spots
 			);

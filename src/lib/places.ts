@@ -25,7 +25,7 @@ export type Place = {
 	lat: number;
 	lng: number;
 	area: string;
-	/** Street, to tell branches of the same chain apart. */
+	/** Street address ("32, Gandhi Bazaar Main Rd"), to tell branches apart. */
 	street: string;
 	osmId: string;
 	isFood: boolean;
@@ -44,6 +44,7 @@ type PhotonFeature = {
 		osm_key: string;
 		osm_value: string;
 		name?: string;
+		housenumber?: string;
 		street?: string;
 		locality?: string;
 		district?: string;
@@ -89,7 +90,7 @@ function toPlace(f: PhotonFeature): Place {
 		lng: f.geometry.coordinates[0],
 		lat: f.geometry.coordinates[1],
 		area: p.suburb ?? p.locality ?? p.district ?? p.city ?? '',
-		street: p.street ?? '',
+		street: [p.housenumber, p.street].filter(Boolean).join(', '),
 		osmId: `${p.osm_type}${p.osm_id}`,
 		isFood: FOOD_TAGS.includes(`${p.osm_key}:${p.osm_value}`),
 		suggestedCategory: suggest(p.osm_value, name)
@@ -206,6 +207,7 @@ type Known = {
 	category: string | null;
 	osm_id: string | null;
 	pinned_by: number;
+	address: string | null;
 	score: number;
 };
 const KEYS: string[] = CATEGORIES.map((c) => c.key);
@@ -236,12 +238,26 @@ export async function searchKnown(
 			lat: k.lat,
 			lng: k.lng,
 			area: k.area,
-			street: '',
+			street: k.address ?? '',
 			osmId: k.osm_id ?? localId(k.lat, k.lng),
 			isFood: true,
 			suggestedCategory: KEYS.includes(k.category ?? '') ? (k.category as CategoryKey) : null,
 			pinnedBy: k.pinned_by
 		}));
+}
+
+/**
+ * Overture addresses often end with the city, state and PIN code, and sometimes the area
+ * again: "32, Gandhi Bazaar Main Rd, Basavanagudi, Bengaluru, Karnataka 560004".
+ * Keep the street part; the area is shown next to it anyway.
+ */
+export function tidyAddress(address: string, area = ''): string {
+	const drop = /^(bengaluru|bangalore|karnataka|india|\d{6}|karnataka \d{6})$/i;
+	const parts = address
+		.split(',')
+		.map((p) => p.trim())
+		.filter((p) => p && !drop.test(p) && p.toLowerCase() !== area.toLowerCase());
+	return parts.join(', ').slice(0, 120);
 }
 
 type Indexed = {
@@ -252,6 +268,7 @@ type Indexed = {
 	lng: number;
 	category: string | null;
 	kind: string | null;
+	address: string | null;
 	score: number;
 };
 
@@ -282,7 +299,7 @@ export async function searchIndex(
 			lat: p.lat,
 			lng: p.lng,
 			area: p.area,
-			street: '',
+			street: tidyAddress(p.address ?? '', p.area),
 			// Not an OSM id, so it's saved as none (see localId).
 			osmId: `x:${p.id}`,
 			isFood: true,
