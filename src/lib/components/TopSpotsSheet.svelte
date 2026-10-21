@@ -194,7 +194,7 @@
 	}
 </script>
 
-<Sheet title="Add your top spots" {onclose}>
+<Sheet title={map.spots.length ? 'Add several spots' : 'Add your top spots'} {onclose}>
 	<div
 		class="mb-3 grid grid-cols-2 gap-1 rounded-full border-2 border-ink bg-surface p-1"
 		role="tablist"

@@ -83,6 +83,7 @@ try {
 	step(`${pins} pin(s) drawn after first add`);
 
 	await page.click('button:has-text("Add spot")');
+	await page.click('button:has-text("Add one spot")');
 	await page.fill('input[placeholder^="Search a place"]', 'Corner House');
 	await page.locator('li button', { hasText: '＋' }).first().waitFor({ timeout: 10000 });
 	await page.locator('li button', { hasText: '＋' }).first().click();
@@ -117,6 +118,7 @@ try {
 
 	// A place search can't find: name it, drop a pin.
 	await page.click('button:has-text("Add spot")');
+	await page.click('button:has-text("Add one spot")');
 	await page.click('text=Can’t find it? Add it by hand');
 	await page.fill('input[placeholder^="What"]', 'Ammi Darshini');
 	await page.click('button:has-text("Drop a pin on the map")');
@@ -128,6 +130,7 @@ try {
 
 	// "I'm here right now": nearby food places, nearest first.
 	await page.click('button:has-text("Add spot")');
+	await page.click('button:has-text("Add one spot")');
 	await page.click('button:has-text("I’m here right now")');
 	await page.getByText('Around you, nearest first').waitFor({ timeout: 15000 });
 	await shot('8-around-me');
@@ -139,6 +142,7 @@ try {
 
 	// Not listed: pin the exact spot I'm standing on.
 	await page.click('button:has-text("Add spot")');
+	await page.click('button:has-text("Add one spot")');
 	await page.click('button:has-text("I’m here right now")');
 	await page.getByText('Not listed? Pin my exact location').waitFor({ timeout: 15000 });
 	await page.click('text=Not listed? Pin my exact location');

@@ -7,6 +7,7 @@
 	import FilterChips from './FilterChips.svelte';
 	import SpotEditor from './SpotEditor.svelte';
 	import TopSpotsSheet from './TopSpotsSheet.svelte';
+	import AddChooser from './AddChooser.svelte';
 	import SpotSheet from './SpotSheet.svelte';
 	import ProfileSheet from './ProfileSheet.svelte';
 	import ListsSheet from './ListsSheet.svelte';
@@ -129,6 +130,8 @@
 	let addingTop = $state(false);
 	/** Open the bulk sheet on "Paste a list" instead of search. */
 	let pasteFirst = $state(false);
+	/** The "Add spot" chooser: one, several, or paste a list. */
+	let choosingAdd = $state(false);
 	let menuOpen = $state(false);
 	let editingProfile = $state(false);
 	let managingLists = $state(false);
@@ -480,27 +483,6 @@
 					<button
 						type="button"
 						class="menu-item"
-						onclick={() => ((menuOpen = false), (pasteFirst = false), (addingTop = true))}
-					>
-						⚡ Add several spots
-					</button>
-					<button
-						type="button"
-						class="menu-item"
-						onclick={() => ((menuOpen = false), (pasteFirst = true), (addingTop = true))}
-					>
-						📋 Paste a list
-					</button>
-					<button
-						type="button"
-						class="menu-item"
-						onclick={() => ((menuOpen = false), (editing = 'new'))}
-					>
-						＋ Add one spot
-					</button>
-					<button
-						type="button"
-						class="menu-item"
 						onclick={() => ((menuOpen = false), (editingProfile = true))}
 					>
 						✏️ Edit profile & Instagram
@@ -683,7 +665,7 @@
 			{#if isOwner}
 				<button
 					type="button"
-					onclick={() => (editing = 'new')}
+					onclick={() => (choosingAdd = true)}
 					class="sticker flex items-center gap-1.5 rounded-full px-4 py-2 font-extrabold active:translate-y-px"
 					class:bg-accent={look === 'pop'}
 					class:text-surface={look === 'pop'}
@@ -892,6 +874,19 @@
 				await refreshAll();
 				editingProfile = false;
 				flash('Profile saved');
+			}}
+		/>
+	{/if}
+	{#if isOwner && choosingAdd}
+		<AddChooser
+			onclose={() => (choosingAdd = false)}
+			onpick={(choice) => {
+				choosingAdd = false;
+				if (choice === 'one') editing = 'new';
+				else {
+					pasteFirst = choice === 'paste';
+					addingTop = true;
+				}
 			}}
 		/>
 	{/if}
