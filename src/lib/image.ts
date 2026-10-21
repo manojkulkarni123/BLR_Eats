@@ -46,3 +46,21 @@ export async function resizePhoto(file: File): Promise<ResizedPhoto> {
 		bitmap.close();
 	}
 }
+
+/**
+ * A screenshot shrunk for reading by the AI: long side 1600 px, JPEG, as a data URL.
+ * Phone screenshots (1080×2400) stay sharp enough to read and are ~150–300 KB.
+ */
+export async function screenshotForAi(file: File): Promise<string> {
+	const bitmap = await createImageBitmap(file, { imageOrientation: 'from-image' });
+	try {
+		const scale = Math.min(1, 1600 / Math.max(bitmap.width, bitmap.height));
+		const canvas = document.createElement('canvas');
+		canvas.width = Math.round(bitmap.width * scale);
+		canvas.height = Math.round(bitmap.height * scale);
+		canvas.getContext('2d')!.drawImage(bitmap, 0, 0, canvas.width, canvas.height);
+		return canvas.toDataURL('image/jpeg', 0.8);
+	} finally {
+		bitmap.close();
+	}
+}

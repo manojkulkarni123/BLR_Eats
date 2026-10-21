@@ -1,7 +1,7 @@
 import type { SupabaseClient } from '@supabase/supabase-js';
 import { CATEGORIES, type CategoryKey } from '#lib/categories.ts';
 import { findPlaces, suggest, type Place } from '#lib/places.ts';
-import { aiJson } from './ai.ts';
+import { aiJson, aiReadImages } from './ai.ts';
 import { MAPS_LINK, placeFromMapsLink } from './google-maps.ts';
 
 // "Turn your list into a map": the WhatsApp list or Notes page people already have
@@ -35,6 +35,10 @@ const SYSTEM = `You turn someone's list of favourite Bangalore food places into 
 Reply only with {"places":[{"name":"","area":"","tip":"","category":"","link":0}]}.
 - name: the place's name only, spelled as written (fix obvious typos). No dishes, no area.
 - area: the Bangalore neighbourhood or road if the text gives one, else "".
+The text may be typed, copied from screenshots, or spoken and turned into text, so names can
+be misheard ("Magna Foods" for Meghana Foods, "Tuit" for Toit, "Kora Mangala" for Koramangala,
+"Baisavanagudi" for Basavanagudi). When you're confident which well-known Bangalore place or
+area was meant, write its usual spelling; otherwise keep it as written.
 - tip: what they say to order or know, in their own words, under 140 characters, else "".
 - category: one of ${KEYS.join(', ')}, or "" if unsure.
 - link: if a place comes with a [link N] marker, N; else 0.
@@ -78,6 +82,20 @@ function sameName(a: string, b: string) {
 		);
 	const x = words(a);
 	return [...words(b)].some((w) => x.has(w)) || a.toLowerCase().includes(b.toLowerCase());
+}
+
+export const MAX_SCREENSHOTS = 5;
+
+const READ_SCREENSHOTS = `These are screenshots of food recommendations in Bangalore: Zomato or Swiggy pages, Instagram posts, stories or reels, chats, Google Maps, or menus.
+Write out every restaurant, café, bar, bakery or food place named in them, one per line, as:
+name, area or road (if shown) – what to order or any tip shown
+Copy names exactly as shown. Skip dishes, people, brands of packaged food and anything that isn't a place to eat or drink. Don't guess places that aren't shown. If there are none, reply NONE.`;
+
+/** Screenshots → lines of text in the same shape people type ("CTR, Malleshwaram – benne dosa"). */
+export async function readScreenshots(images: string[]): Promise<string> {
+	if (!images.length) return '';
+	const text = await aiReadImages(READ_SCREENSHOTS, images.slice(0, MAX_SCREENSHOTS));
+	return /^\s*none\s*$/i.test(text) ? '' : text;
 }
 
 export async function parseList(db: SupabaseClient, text: string): Promise<ParsedItem[]> {

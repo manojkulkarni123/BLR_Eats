@@ -25,5 +25,13 @@ export const variables = defineEnvVars({
 	AI_FALLBACK_MODEL: {
 		schema: (v) => v || 'openai/gpt-oss-20b',
 		description: 'Used when the main model is rate-limited'
+	},
+	AI_VISION_MODEL: {
+		schema: (v) => v || 'qwen/qwen3.8-27b',
+		description: 'Reads place names off screenshots in "Tell us your spots"'
+	},
+	AI_SPEECH_MODEL: {
+		schema: (v) => v || 'whisper-large-v3-turbo',
+		description: 'Speech to text for the 🎙️ button in "Tell us your spots"'
 	}
 });

@@ -4,11 +4,13 @@
 	import PlaceSearch from './PlaceSearch.svelte';
 	import CategoryPicker from './CategoryPicker.svelte';
 	import AskThinking from './AskThinking.svelte';
+	import VoiceButton from './VoiceButton.svelte';
 	import { categoryByKey, type CategoryKey } from '#lib/categories.ts';
 	import { lookOf } from '#lib/look.ts';
 	import type { Place } from '#lib/places.ts';
 	import { createCustomCategory, createSpots } from '#lib/spots-client.ts';
 	import { getTheme } from '#lib/theme.ts';
+	import { screenshotForAi } from '#lib/image.ts';
 	import type { FoodMap } from '#lib/types.ts';
 
 	// Adding several places at once. "Tell us your spots" (the default): type like you'd
@@ -56,6 +58,33 @@
 	let seed = $state('');
 	/** What was being looked up from `missing` when the search was seeded. */
 	let seeking: Parsed | null = null;
+	/** Screenshots to read (Zomato pages, Instagram stories…), shrunk, as data URLs. */
+	const MAX_SHOTS = 5;
+	let shots: string[] = $state([]);
+	let readingShots = $state(false);
+
+	async function addShots(e: Event) {
+		const input = e.currentTarget as HTMLInputElement;
+		const files = [...(input.files ?? [])].slice(0, MAX_SHOTS - shots.length);
+		input.value = '';
+		if (!files.length) return;
+		readingShots = true;
+		error = null;
+		try {
+			const urls = await Promise.all(files.map(screenshotForAi));
+			shots = [...shots, ...urls].slice(0, MAX_SHOTS);
+		} catch {
+			error = 'Couldn’t open that image. Try a screenshot';
+		} finally {
+			readingShots = false;
+		}
+	}
+
+	function heard(said: string) {
+		text = text.trim() ? `${text.trim()}\n${said}` : said;
+	}
+
+	const ready = $derived(text.trim().length >= 3 || shots.length > 0);
 
 	// A casual message, not a tidy list: it shows people they can just write.
 	const EXAMPLE =
@@ -86,14 +115,14 @@
 	}
 
 	async function readList() {
-		if (text.trim().length < 3) return;
+		if (!ready) return;
 		reading = true;
 		error = null;
 		try {
 			const res = await fetch('/api/parse-list', {
 				method: 'POST',
 				headers: { 'Content-Type': 'application/json' },
-				body: JSON.stringify({ text })
+				body: JSON.stringify({ text, images: shots })
 			});
 			const body = (await res.json().catch(() => ({}))) as { items?: Parsed[]; message?: string };
 			if (!res.ok || !body.items) throw new Error(body.message ?? 'Couldn’t read that list');
@@ -122,6 +151,7 @@
 			items = [...found.reverse(), ...items];
 			missing = lost;
 			text = '';
+			shots = [];
 			mode = 'search';
 		} catch (e) {
 			error = e instanceof Error ? e.message : 'Couldn’t read that list';
@@ -227,6 +257,7 @@
 					look={lookOf(theme)}
 					{theme}
 					steps={[
+						...(shots.length ? ['Reading your screenshots…'] : []),
 						'Reading what you wrote…',
 						'Finding each place on the map…',
 						'Checking which branch…',
@@ -237,8 +268,8 @@
 			</div>
 		{:else}
 			<p class="mb-2 font-semibold opacity-80">
-				Type it like you’d text a friend, or paste a list you already have. Names, areas, what to
-				order and Google Maps links all work.
+				Type it like you’d text a friend, say it, or paste a list. Names, areas, what to order,
+				Google Maps links and screenshots all work.
 			</p>
 			<textarea
 				bind:value={text}
@@ -247,10 +278,49 @@
 				placeholder={EXAMPLE}
 				class="sticker w-full resize-none rounded-2xl bg-surface px-4 py-3 text-base font-semibold outline-none"
 			></textarea>
+			<div class="mt-2 flex gap-2">
+				<VoiceButton ontext={heard} onerror={(m) => (error = m)} />
+				<label
+					class="flex flex-1 cursor-pointer items-center justify-center gap-2 rounded-full border-2 border-ink bg-surface py-2 font-extrabold"
+					class:opacity-50={shots.length >= MAX_SHOTS}
+				>
+					{readingShots ? 'Adding…' : '📷 Screenshots'}
+					<input
+						type="file"
+						accept="image/*"
+						multiple
+						class="sr-only"
+						disabled={shots.length >= MAX_SHOTS || readingShots}
+						onchange={addShots}
+					/>
+				</label>
+			</div>
+			{#if shots.length}
+				<ul class="mt-2 flex gap-2 overflow-x-auto pb-1" aria-label="Screenshots to read">
+					{#each shots as shot, i (shot)}
+						<li class="relative shrink-0">
+							<img
+								src={shot}
+								alt="Screenshot {i + 1}"
+								class="h-20 w-12 rounded-lg border-2 border-ink object-cover"
+							/>
+							<button
+								type="button"
+								aria-label="Remove screenshot {i + 1}"
+								class="absolute -top-2 -right-2 grid size-6 place-items-center rounded-full border-2 border-ink bg-surface text-xs font-extrabold"
+								onclick={() => (shots = shots.filter((_, j) => j !== i))}>✕</button
+							>
+						</li>
+					{/each}
+				</ul>
+			{/if}
+			<p class="mt-1.5 text-xs font-semibold opacity-55">
+				Screenshots are only read to find the places, never saved.
+			</p>
 			{#if error}<p class="mt-2 font-extrabold text-accent" role="alert">{error}</p>{/if}
 			<button
 				type="button"
-				disabled={text.trim().length < 3}
+				disabled={!ready}
 				onclick={readList}
 				class="sticker mt-2 w-full rounded-full bg-ink py-2.5 text-lg font-extrabold text-surface disabled:opacity-40"
 			>
