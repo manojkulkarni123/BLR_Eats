@@ -156,8 +156,11 @@
 		font-weight: 700;
 	}
 	:global(.look-poster) .chip.ask {
-		background: var(--accent);
-		color: var(--ink);
+		background: var(--ink);
+		color: var(--paper);
+	}
+	:global(.look-poster) .chip.ask :global(svg) {
+		color: var(--sun);
 	}
 	.count {
 		font-size: 12px;

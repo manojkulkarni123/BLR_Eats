@@ -93,14 +93,18 @@
 </div>
 
 <style>
+	/* Poster: dark ink with cream type and a yellow mark; special, but in the print palette. */
 	:global(.look-poster) .ask-box {
-		background: var(--accent);
-		color: var(--ink);
-		box-shadow: none;
+		background: var(--ink);
+		color: var(--paper);
+		box-shadow: 3px 3px 0 var(--sun);
 		border-width: 1.75px;
 	}
+	:global(.look-poster) .ask-box :global(svg) {
+		color: var(--sun);
+	}
 	:global(.look-poster) .ask-box input::placeholder {
-		color: color-mix(in srgb, var(--ink) 60%, transparent);
+		color: color-mix(in srgb, var(--paper) 65%, transparent);
 	}
 	.ask-box {
 		display: flex;

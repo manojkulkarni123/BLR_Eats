@@ -373,13 +373,12 @@
 		<!-- Header renders on the server, so something colourful shows before the map loads. -->
 		<header
 			class="pointer-events-none absolute inset-x-0 top-0 z-10 pt-[max(12px,env(safe-area-inset-top))]"
-			class:poster-head={look === 'poster'}
 		>
 			<div class="pointer-events-auto flex items-center gap-2 px-4 pb-2">
 				{#if look === 'poster'}
 					<button
 						type="button"
-						class="flex min-w-0 items-center gap-2.5 text-left"
+						class="flex min-w-0 items-center gap-2.5 rounded-[22px] border-2 border-ink bg-surface py-1.5 pr-4 pl-1.5 text-left shadow-[3px_3px_0_var(--ink)]"
 						onclick={() => (isOwner ? (menuOpen = !menuOpen) : (aboutOpen = !aboutOpen))}
 						aria-expanded={isOwner ? menuOpen : aboutOpen}
 					>
@@ -400,7 +399,7 @@
 							<span class="block text-[11px] font-extrabold tracking-[0.14em] uppercase"
 								>{possessive}</span
 							>
-							<span class="title block truncate text-[32px] leading-[0.95] font-extrabold">
+							<span class="title block truncate text-[27px] leading-[0.95] font-extrabold">
 								{slice ? slice.label : 'Bengaluru'}
 							</span>
 							<span class="mt-1 block text-xs font-semibold opacity-70">{subtitle}</span>
@@ -925,11 +924,6 @@
 	/* Instagram's own warm gradient, so the button reads as Instagram at a glance. */
 	.ig {
 		background: linear-gradient(45deg, #feda75, #fa7e1e 30%, #d62976 60%, #962fbf 85%, #4f5bd5);
-	}
-	/* Poster header: a paper fade so the title reads over the map. */
-	.poster-head {
-		background: linear-gradient(var(--paper) 70%, transparent);
-		padding-bottom: 14px;
 	}
 	.answer {
 		animation: rise 260ms cubic-bezier(0.34, 1.3, 0.64, 1) both;
