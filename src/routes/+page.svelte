@@ -5,6 +5,7 @@
 	import Phone from '#lib/components/Phone.svelte';
 	import FoodIcon from '#lib/components/FoodIcon.svelte';
 	import InstagramIcon from '#lib/components/InstagramIcon.svelte';
+	import UiIcon, { type UiIconName } from '#lib/components/UiIcon.svelte';
 	import { bengaluruPoster as theme, themeCssVars } from '#lib/theme.ts';
 	import type { CategoryKey } from '#lib/categories.ts';
 	import type { PageProps } from './$types';
@@ -21,6 +22,72 @@
 		paper: theme.ui.surface,
 		cream: '#F4D9A0'
 	});
+
+	// Everything the map does, at a glance. `href` jumps to the section that shows it.
+	const c = theme.categories;
+	type Feature = {
+		icon: UiIconName;
+		title: string;
+		line: string;
+		bg: string;
+		on: string;
+		href?: string;
+	};
+	const features: Feature[] = [
+		{
+			icon: 'paste',
+			title: 'Paste a list',
+			line: 'Your old WhatsApp list becomes pins.',
+			...c['south-indian'],
+			href: '#paste'
+		},
+		{
+			icon: 'mic',
+			title: 'Say it',
+			line: 'Talk through your spots. We write them down.',
+			...c.asian,
+			href: '#tell'
+		},
+		{
+			icon: 'camera',
+			title: 'Snap it',
+			line: 'Screenshots from Zomato or Instagram work too.',
+			...c.biryani,
+			href: '#tell'
+		},
+		{
+			icon: 'slice',
+			title: 'Share a slice',
+			line: 'The whole map, just dosas, or one spot.',
+			...c.desserts,
+			href: '#share'
+		},
+		{
+			icon: 'ask',
+			title: 'Ask the map',
+			line: '“Somewhere sweet after dinner?” Answered.',
+			...c.italian,
+			href: '#ask'
+		},
+		{
+			icon: 'directions',
+			title: 'One-tap directions',
+			line: 'Every pin opens straight in Maps.',
+			...c.burgers
+		},
+		{
+			icon: 'near',
+			title: 'Near me',
+			line: 'See which of your picks are close by.',
+			...c['street-food']
+		},
+		{
+			icon: 'phone',
+			title: 'No app needed',
+			line: 'Friends just open the link. No login.',
+			...c.chinese
+		}
+	];
 
 	// The "before": how food recs travel today.
 	const chat = [
@@ -70,7 +137,7 @@
 
 	<!-- Hero -->
 	<header
-		class="mx-auto grid max-w-6xl items-center gap-12 px-5 pt-6 pb-4 md:grid-cols-[1.05fr_1fr] md:px-8 md:pt-14 md:pb-28"
+		class="mx-auto grid max-w-6xl items-center gap-12 px-5 pt-6 pb-4 md:px-8 md:pt-10 lg:grid-cols-[1.05fr_1fr] lg:pt-14 lg:pb-20"
 	>
 		<div id="start" class="flex flex-col gap-6">
 			<h1 class="title hero-title font-black">
@@ -99,7 +166,7 @@
 			<p class="text-sm font-bold opacity-55">Free · two minutes · nothing to install</p>
 		</div>
 
-		<div class="relative mx-auto h-[540px] w-full max-w-[460px] md:h-[620px]">
+		<div class="hero-visual relative mx-auto w-full max-w-[460px]">
 			<Phone
 				src="/landing/spot.jpg"
 				alt="A spot on a blr_eats map: Vidyarthi Bhavan, its address and the owner’s tip"
@@ -125,8 +192,36 @@
 		</div>
 	</header>
 
+	<!-- Everything at a glance -->
+	<section class="mx-auto max-w-6xl px-5 pt-14 pb-6 md:px-8 lg:pt-4">
+		<p class="kicker">What your map can do</p>
+		<h2 class="title h2 max-w-3xl font-black">Everything a food list can’t.</h2>
+		<ul class="feature-grid mt-8 md:mt-10">
+			{#each features as f (f.title)}
+				<li>
+					<svelte:element
+						this={f.href ? 'a' : 'div'}
+						href={f.href}
+						class="feature-card"
+						class:linked={f.href}
+					>
+						<span class="feature-icon" style="background:{f.bg};color:{f.on}">
+							<UiIcon name={f.icon} size={24} />
+						</span>
+						<span class="mt-auto block pt-5 text-lg leading-tight font-extrabold md:text-xl">
+							{f.title}
+						</span>
+						<span class="mt-1 block text-[15px] leading-snug font-semibold opacity-70"
+							>{f.line}</span
+						>
+					</svelte:element>
+				</li>
+			{/each}
+		</ul>
+	</section>
+
 	<!-- 1. The list you already have -->
-	<section class="feature">
+	<section id="paste" class="feature">
 		<div class="copy">
 			<p class="kicker">Got a list?</p>
 			<h2 class="title h2 font-black">Paste the one you already sent.</h2>
@@ -135,35 +230,37 @@
 				branch and keep your tips.
 			</p>
 		</div>
-		<div class="flex flex-col items-center justify-center gap-4 md:flex-row md:gap-6">
-			<div class="chat-bubble w-[78%] max-w-[300px] md:w-[52%]">
+		<div class="flex flex-col items-center justify-center gap-4 sm:flex-row sm:gap-6">
+			<div class="chat-bubble w-[78%] max-w-[300px] sm:w-[52%]">
 				{#each chat as line, i (line)}
 					<p class={i === 0 ? 'mb-1 font-semibold' : ''}>{line}</p>
 				{/each}
 				<p class="mt-1 text-right text-[11px] opacity-50">11:42 pm ✓✓</p>
 			</div>
 			<span class="arrow" aria-hidden="true"
-				><span class="md:hidden">↓</span><span class="hidden md:inline">→</span></span
+				><span class="sm:hidden">↓</span><span class="hidden sm:inline">→</span></span
 			>
 			<Phone
 				src="/landing/review.jpg"
 				alt="The pasted list turned into matched places with their tips"
-				class="w-[58%] max-w-[260px] shrink-0 md:w-[40%]"
+				class="w-[58%] max-w-[260px] shrink-0 sm:w-[40%]"
 			/>
 		</div>
 	</section>
 
 	<!-- 2. Other ways in -->
-	<section class="feature flip">
+	<section id="tell" class="feature flip">
 		<div class="copy">
 			<p class="kicker">No list? No problem.</p>
 			<h2 class="title h2 font-black">Or just say it.</h2>
 			<p class="lede">Tell us your spots the way you’d tell a friend.</p>
 			<ul class="mt-6 grid gap-3 text-lg font-bold">
-				<li class="way"><span>💬</span> Type it like a text</li>
-				<li class="way"><span>🎙️</span> Say it out loud</li>
-				<li class="way"><span>📷</span> Add screenshots from Zomato or Instagram</li>
-				<li class="way"><span>📍</span> Paste Google Maps links</li>
+				<li class="way"><span><UiIcon name="ask" /></span> Type it like a text</li>
+				<li class="way"><span><UiIcon name="mic" /></span> Say it out loud</li>
+				<li class="way">
+					<span><UiIcon name="camera" /></span> Add screenshots from Zomato or Instagram
+				</li>
+				<li class="way"><span><UiIcon name="link" /></span> Paste Google Maps links</li>
 			</ul>
 		</div>
 		<div class="flex justify-center">
@@ -177,7 +274,7 @@
 	</section>
 
 	<!-- 3. Sharing, from the friend's side -->
-	<section class="feature">
+	<section id="share" class="feature">
 		<div class="copy">
 			<p class="kicker">Then share it</p>
 			<h2 class="title h2 font-black">One link. They’re in.</h2>
@@ -211,7 +308,7 @@
 	</section>
 
 	<!-- 4. Ask -->
-	<section class="feature flip">
+	<section id="ask" class="feature flip">
 		<div class="copy">
 			<p class="kicker">Built in</p>
 			<h2 class="title h2 font-black">They can ask it things.</h2>
@@ -231,7 +328,7 @@
 	</section>
 
 	<!-- Creators -->
-	<section class="mx-auto max-w-6xl px-5 py-16 md:px-8">
+	<section id="creators" class="mx-auto max-w-6xl px-5 py-16 md:px-8">
 		<div class="creators">
 			<div>
 				<p class="kicker">Food creator?</p>
@@ -244,12 +341,12 @@
 					<p class="font-semibold opacity-70">on your map, and your name on every tip.</p>
 				</li>
 				<li>
-					<span class="text-2xl">👀</span>
+					<UiIcon name="eye" size={28} />
 					<p class="mt-2 text-lg font-extrabold">View counts</p>
 					<p class="font-semibold opacity-70">so you know what your followers open.</p>
 				</li>
 				<li>
-					<span class="text-2xl">🔗</span>
+					<UiIcon name="link" size={28} />
 					<p class="mt-2 text-lg font-extrabold">One answer</p>
 					<p class="font-semibold opacity-70">to “where should I eat?”, forever.</p>
 				</li>
@@ -271,7 +368,7 @@
 	</section>
 
 	<footer
-		class="mx-auto flex max-w-6xl flex-wrap items-center justify-between gap-3 px-5 pb-28 text-sm font-semibold opacity-60 md:px-8 md:pb-10"
+		class="mx-auto flex max-w-6xl flex-wrap items-center justify-between gap-3 px-5 pb-28 text-sm font-semibold opacity-60 md:px-8 lg:pb-10"
 	>
 		<span class="title text-lg font-black">blr_eats</span>
 		<span class="flex gap-5">
@@ -284,7 +381,7 @@
 	</footer>
 
 	{#if !signedIn}
-		<div class="sticky-bar md:hidden" class:show={showBar} aria-hidden={!showBar}>
+		<div class="sticky-bar lg:hidden" class:show={showBar} aria-hidden={!showBar}>
 			<a href="#start" class="btn-sun" tabindex={showBar ? 0 : -1}>Make your map, free →</a>
 		</div>
 	{/if}
@@ -370,6 +467,11 @@
 	}
 	@media (min-width: 768px) {
 		.feature {
+			padding: 80px 32px;
+		}
+	}
+	@media (min-width: 1024px) {
+		.feature {
 			grid-template-columns: 1fr 1fr;
 			gap: 64px;
 			padding: 96px 32px;
@@ -378,6 +480,68 @@
 			order: 2;
 		}
 	}
+	/* Hero phones scale with the column instead of a fixed height. */
+	.hero-visual {
+		aspect-ratio: 460 / 600;
+	}
+	@media (min-width: 1024px) {
+		.hero-visual {
+			aspect-ratio: 460 / 620;
+		}
+	}
+
+	.feature-grid {
+		display: grid;
+		gap: 12px;
+		grid-template-columns: repeat(2, minmax(0, 1fr));
+	}
+	@media (min-width: 768px) {
+		.feature-grid {
+			gap: 16px;
+			grid-template-columns: repeat(4, minmax(0, 1fr));
+		}
+	}
+	@media (min-width: 768px) and (max-width: 1023px) {
+		:global(.feature-card) {
+			min-height: 200px;
+		}
+	}
+	.feature-grid > li {
+		display: flex;
+	}
+	:global(.feature-card) {
+		display: flex;
+		width: 100%;
+		min-height: 170px;
+		flex-direction: column;
+		border: 2.5px solid var(--ink);
+		border-radius: 24px;
+		background: var(--surface);
+		padding: 18px;
+		box-shadow: 4px 4px 0 var(--ink);
+		transition:
+			translate 150ms ease,
+			box-shadow 150ms ease;
+	}
+	:global(.feature-card.linked:hover) {
+		translate: -2px -2px;
+		box-shadow: 6px 6px 0 var(--ink);
+	}
+	.feature-icon {
+		display: grid;
+		width: 48px;
+		height: 48px;
+		place-items: center;
+		border: 2.5px solid var(--ink);
+		border-radius: 999px;
+	}
+	@media (max-width: 380px) {
+		:global(.feature-card) {
+			min-height: 150px;
+			padding: 14px;
+		}
+	}
+
 	.way {
 		display: flex;
 		align-items: center;
@@ -390,9 +554,8 @@
 		flex-shrink: 0;
 		place-items: center;
 		border-radius: 999px;
-		background: var(--surface);
+		background: var(--sun);
 		border: 2px solid var(--ink);
-		font-size: 18px;
 	}
 	.arrow {
 		font-size: 34px;
@@ -403,8 +566,8 @@
 	.sticker-badge {
 		position: absolute;
 		display: grid;
-		width: 72px;
-		height: 72px;
+		width: clamp(52px, 16%, 72px);
+		aspect-ratio: 1;
 		place-items: center;
 		border-radius: 999px;
 		border: 2.5px solid var(--ink);
@@ -493,7 +656,7 @@
 	.creators .kicker {
 		color: var(--sun);
 	}
-	@media (min-width: 768px) {
+	@media (min-width: 1024px) {
 		.creators {
 			grid-template-columns: 0.9fr 1.6fr;
 			align-items: center;
@@ -518,6 +681,9 @@
 	@media (prefers-reduced-motion: reduce) {
 		.sticker-badge {
 			animation: none;
+		}
+		:global(.feature-card) {
+			transition: none;
 		}
 		.sticky-bar {
 			transition: none;
