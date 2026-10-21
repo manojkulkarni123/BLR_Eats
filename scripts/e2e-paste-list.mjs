@@ -14,11 +14,24 @@ const handle = `e2e${String(Date.now()).slice(-6)}`;
 const user = (await admin.auth.admin.createUser({ email, email_confirm: true })).data.user;
 const link = (await admin.auth.admin.generateLink({ type: 'magiclink', email })).data;
 
-const LIST = `my bangalore faves!!
-1. kalpany dollars colony - get the ghee roast, go before 1
-2) Vidyarthi bhavan https://www.google.com/maps/place/Vidyarthi+Bhavan/@12.9452,77.5713,17z/data=!3m1!4b1!4m6!3m5!1s0x3bae15!8m2!3d12.9451786!4d77.5712869!16s
-- meghna biryani koramangala (boneless!!)
-also my gym is in hsr lol`;
+// A real-world messy list: typos, chains with many branches, no areas, a Maps link for a
+// place also named in text, and a line that isn't food.
+const LIST = `my blr food list 🍽️🔥
+
+1. CTR malleshwaram - benne masala dosa, go early or wait 40 mins
+2. vidyarthi bhavan basavanagudi (masala dosa obv)
+3) Meghana foods koramangala – boneless biryani!!
+4. brahmins coffee bar, shankarpuram. idli vada + coffee, cash only
+- Toit indiranagar for beers n pizza
+- third wave coffee hsr
+- Truffles st marks rd. all day breakfast + burgers
+* MTR lalbagh rd - rava idli
+* Airlines hotel - masala dosa under the tree
+Corner House - death by chocolate 🍫
+Rameshwaram cafe brookefield - ghee podi idli
+Empire restaurant church st late night
+https://www.google.com/maps/place/Vidyarthi+Bhavan/@12.9452,77.5713,17z/data=!3m1!4b1!4m6!3m5!1s0x3bae15!8m2!3d12.9451786!4d77.5712869!16s
+also need to go to the dentist in jayanagar lol`;
 
 const browser = await chromium.launch({
 	channel: 'msedge',
@@ -47,19 +60,34 @@ try {
 	await page.getByText('Reading your list').waitFor();
 	await shot('2-thinking');
 	step('thinking state shown');
-	await page.getByText(/Done, show my map|Couldn’t find/).first().waitFor({ timeout: 45000 });
+	await page
+		.getByText(/Done, show my map|Couldn’t find/)
+		.first()
+		.waitFor({ timeout: 45000 });
 	await page.waitForTimeout(300);
 	await shot('3-review');
-	const names = await page.locator('li.sticker p.truncate.font-extrabold').allTextContents();
-	const tips = await page.locator('input[aria-label^="Tip for"]').evaluateAll((els) =>
-		els.map((e) => e.value)
-	);
+	const names = await page
+		.locator('li.sticker')
+		.evaluateAll((els) =>
+			els.map(
+				(e) =>
+					e.querySelectorAll('p')[0]?.textContent.trim() +
+					' · ' +
+					e.querySelectorAll('p')[1]?.textContent.trim().split('·')[0].trim()
+			)
+		);
+	const tips = await page
+		.locator('input[aria-label^="Tip for"]')
+		.evaluateAll((els) => els.map((e) => e.value));
 	const missing = await page
 		.locator('text=Couldn’t find')
 		.locator('..')
 		.locator('li span')
 		.allTextContents();
-	console.log('  matched:', names.map((n) => n.trim()));
+	console.log(
+		'  matched:',
+		names.map((n) => n.trim())
+	);
 	console.log('  tips:', tips);
 	console.log('  not found:', missing);
 	if (!names.length) throw new Error('nothing matched');

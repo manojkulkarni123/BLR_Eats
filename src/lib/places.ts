@@ -32,6 +32,8 @@ export type Place = {
 	suggestedCategory: CategoryKey | null;
 	/** How many blr_eats maps already have this place (known-place results only). */
 	pinnedBy?: number;
+	/** How well it matched the query, 0–1 (our own index and known places only). */
+	score?: number;
 };
 
 type PhotonFeature = {
@@ -103,7 +105,8 @@ async function photon(
 	for (const [k, v] of Object.entries(params)) {
 		for (const value of [v].flat()) url.searchParams.append(k, value);
 	}
-	const res = await fetch(url, { signal });
+	const timeout = AbortSignal.timeout(3000);
+	const res = await fetch(url, { signal: signal ? AbortSignal.any([signal, timeout]) : timeout });
 	if (!res.ok) return [];
 	return ((await res.json()) as { features: PhotonFeature[] }).features;
 }
@@ -228,6 +231,7 @@ export async function searchKnown(
 	return ((data ?? []) as Known[])
 		.filter((k) => k.score >= 0.5)
 		.map((k) => ({
+			score: k.score,
 			name: k.name,
 			lat: k.lat,
 			lng: k.lng,
@@ -238,6 +242,98 @@ export async function searchKnown(
 			suggestedCategory: KEYS.includes(k.category ?? '') ? (k.category as CategoryKey) : null,
 			pinnedBy: k.pinned_by
 		}));
+}
+
+type Indexed = {
+	id: string;
+	name: string;
+	area: string;
+	lat: number;
+	lng: number;
+	category: string | null;
+	kind: string | null;
+	score: number;
+};
+
+/**
+ * Our own index of Bangalore food places (public.places, loaded from Overture Maps).
+ * Typo-tolerant, knows initials ("CTR"), and spots the area in "toit indiranagar".
+ */
+export async function searchIndex(
+	db: SupabaseClient,
+	query: string,
+	near: { lat: number; lng: number } = CITY_CENTRE,
+	max = 8,
+	areaHint?: string
+): Promise<Place[]> {
+	const q = query.trim();
+	if (q.length < 2) return [];
+	const { data } = await db.rpc('search_places', {
+		q,
+		near_lat: near.lat,
+		near_lng: near.lng,
+		max_results: max,
+		...(areaHint ? { area_hint: areaHint } : {})
+	});
+	return ((data ?? []) as Indexed[])
+		.filter((p) => p.score >= 0.5)
+		.map((p) => ({
+			name: p.name,
+			lat: p.lat,
+			lng: p.lng,
+			area: p.area,
+			street: '',
+			// Not an OSM id, so it's saved as none (see localId).
+			osmId: `x:${p.id}`,
+			isFood: true,
+			suggestedCategory: KEYS.includes(p.category ?? '')
+				? (p.category as CategoryKey)
+				: suggest('', p.name),
+			score: p.score
+		}));
+}
+
+/**
+ * Every place source, best first: places on blr_eats maps and our own index (ranked
+ * together by match), then OpenStreetMap via Photon for anything they miss.
+ * `photon: 'fallback'` only asks Photon when our own sources found nothing good.
+ */
+export async function findPlaces(
+	db: SupabaseClient,
+	query: string,
+	{
+		near = CITY_CENTRE,
+		area,
+		signal,
+		photon = 'always'
+	}: {
+		near?: { lat: number; lng: number };
+		area?: string;
+		signal?: AbortSignal;
+		photon?: 'always' | 'fallback';
+	} = {}
+): Promise<Place[]> {
+	const full = area ? `${query} ${area}` : query;
+	const fromPhoton = () =>
+		searchPlaces(full, near, signal).catch((e) => {
+			if (e instanceof DOMException && e.name === 'AbortError' && signal?.aborted) throw e;
+			return [] as Place[];
+		});
+	const osmEarly = photon === 'always' ? fromPhoton() : null;
+	const [known, indexed] = await Promise.all([
+		searchKnown(db, full, near).catch(() => []),
+		searchIndex(db, query, near, 8, area).catch(() => [])
+	]);
+	// Someone already pinned it: a small boost over an equally good index match.
+	const ours = [...known, ...indexed].sort(
+		(a, b) => (b.score ?? 0) + (b.pinnedBy ? 0.05 : 0) - ((a.score ?? 0) + (a.pinnedBy ? 0.05 : 0))
+	);
+	const good = ours.some((p) => (p.score ?? 0) >= 0.7);
+	const osm = osmEarly ? await osmEarly : good ? [] : await fromPhoton();
+	return mergePlaces(
+		ours,
+		osm.filter((p) => !area || p.isFood)
+	);
 }
 
 /** Known places first, then OSM ones that aren't the same place. */

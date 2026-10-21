@@ -1,13 +1,6 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
-	import {
-		distanceM,
-		foodNear,
-		mergePlaces,
-		searchKnown,
-		searchPlaces,
-		type Place
-	} from '#lib/places.ts';
+	import { distanceM, findPlaces, foodNear, type Place } from '#lib/places.ts';
 	import { supabase } from '#lib/supabase.ts';
 
 	type Props = {
@@ -88,15 +81,7 @@
 				results = await fromLink(query.trim(), signal);
 				searched = !message;
 			} else {
-				// Places on blr_eats maps are typo-tolerant; OSM fills in the rest.
-				const [known, osm] = await Promise.all([
-					searchKnown(supabase(), query, near).catch(() => []),
-					searchPlaces(query, near, signal).catch((e) => {
-						if (e instanceof DOMException && e.name === 'AbortError') throw e;
-						return [];
-					})
-				]);
-				results = mergePlaces(known, osm).slice(0, 10);
+				results = (await findPlaces(supabase(), query, { near, signal })).slice(0, 10);
 				searched = query.trim().length >= 2;
 			}
 		} catch (e) {

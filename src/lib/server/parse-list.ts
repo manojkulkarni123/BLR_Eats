@@ -1,6 +1,6 @@
 import type { SupabaseClient } from '@supabase/supabase-js';
 import { CATEGORIES, type CategoryKey } from '#lib/categories.ts';
-import { mergePlaces, searchKnown, searchPlaces, suggest, type Place } from '#lib/places.ts';
+import { findPlaces, suggest, type Place } from '#lib/places.ts';
 import { aiJson } from './ai.ts';
 import { MAPS_LINK, placeFromMapsLink } from './google-maps.ts';
 
@@ -59,14 +59,25 @@ async function match(
 	name: string,
 	area: string
 ): Promise<{ match: Place | null; alternatives: Place[] }> {
-	const q = `${name} ${area}`.trim();
-	// Places other people already pinned come first: typo-tolerant and already curated.
-	const known = await searchKnown(db, q, undefined, 3).catch(() => []);
-	let osm = (await searchPlaces(q).catch(() => [])).filter((p) => p.isFood);
-	// "Meghana Indiranagar" can miss when the area is spelt differently; try the name alone.
-	if (!osm.length && area) osm = (await searchPlaces(name).catch(() => [])).filter((p) => p.isFood);
-	const all = mergePlaces(known, osm);
+	// Our own sources first; Photon only when they find nothing good.
+	let all = await findPlaces(db, name, { area: area || undefined, photon: 'fallback' });
+	// "Meghana, Indiranagr": a misspelt area shouldn't lose the place.
+	if (!all.length && area) all = await findPlaces(db, name, { photon: 'fallback' });
 	return { match: all[0] ?? null, alternatives: all.slice(1, 4) };
+}
+
+/** Loose name check: does "Vidyarthi bhavan" plausibly name "Vidyarthi Bhavan"? */
+function sameName(a: string, b: string) {
+	const words = (s: string) =>
+		new Set(
+			s
+				.toLowerCase()
+				.replace(/[^a-z0-9 ]/g, ' ')
+				.split(/\s+/)
+				.filter((w) => w.length >= 3)
+		);
+	const x = words(a);
+	return [...words(b)].some((w) => x.has(w)) || a.toLowerCase().includes(b.toLowerCase());
 }
 
 export async function parseList(db: SupabaseClient, text: string): Promise<ParsedItem[]> {
@@ -99,7 +110,8 @@ export async function parseList(db: SupabaseClient, text: string): Promise<Parse
 			.slice(0, 280);
 		const category = KEYS.includes(String(e.category)) ? (e.category as CategoryKey) : null;
 		const n = Number(e.link);
-		const fromLink = n >= 1 && n <= links.length ? linked[n - 1] : null;
+		const candidate = n >= 1 && n <= links.length ? linked[n - 1] : null;
+		const fromLink = candidate && sameName(candidate.name, name) ? candidate : null;
 		if (fromLink) used.add(n - 1);
 		const found = fromLink ? { match: fromLink, alternatives: [] } : await match(db, name, area);
 		return {
@@ -110,9 +122,11 @@ export async function parseList(db: SupabaseClient, text: string): Promise<Parse
 		};
 	});
 
-	// Links the AI didn't tie to a named place still become spots (or a "couldn't read" row).
+	// Links the AI didn't tie to a named place still become spots (or a "couldn't read" row),
+	// unless the list already names that place.
+	const named = items.filter((i): i is ParsedItem => i !== null);
 	const loose = linked.flatMap((p, i): ParsedItem[] =>
-		used.has(i)
+		used.has(i) || (p && named.some((it) => sameName(it.wrote, p.name)))
 			? []
 			: [
 					{
@@ -124,5 +138,5 @@ export async function parseList(db: SupabaseClient, text: string): Promise<Parse
 					}
 				]
 	);
-	return [...items.filter((i): i is ParsedItem => i !== null), ...loose].slice(0, MAX_ITEMS);
+	return [...named, ...loose].slice(0, MAX_ITEMS);
 }
