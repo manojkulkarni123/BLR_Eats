@@ -50,14 +50,14 @@ try {
 	await page.fill('input[name=name]', 'E2E Paster');
 	await page.fill('input[name=handle]', handle);
 	await page.click('button:has-text("Make my map")');
-	await page.getByText('Add your top spots').first().waitFor();
+	await page.getByText('Tell us your spots').first().waitFor();
 	step('signed up → top spots sheet');
 
-	await page.click('[role=tab]:has-text("Paste a list")');
+	await page.click('[role=tab]:has-text("Tell us")');
 	await page.fill('textarea', LIST);
 	await shot('1-pasted');
-	await page.click('button:has-text("Find these places")');
-	await page.getByText('Reading your list').waitFor();
+	await page.click('button:has-text("Pin them")');
+	await page.getByText('Reading what you wrote').waitFor();
 	await shot('2-thinking');
 	step('thinking state shown');
 	await page

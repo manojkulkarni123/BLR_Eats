@@ -11,19 +11,19 @@
 	import { getTheme } from '#lib/theme.ts';
 	import type { FoodMap } from '#lib/types.ts';
 
-	// First run: add your go-to places fast. Search one by one, or paste the list you
-	// already have (WhatsApp, Notes, Google Maps links) and check what we matched.
-	// Photos can come later (DECISIONS.md, "Key flows").
+	// Adding several places at once. "Tell us your spots" (the default): type like you'd
+	// text a friend, or paste a list or Google Maps links, then check what we matched.
+	// Or search one by one. Photos can come later (DECISIONS.md, "Key flows").
 	type Props = {
 		map: FoodMap;
 		ownerId: string;
 		onclose: () => void;
 		ondone: (added: number) => Promise<void>;
 		near?: { lat: number; lng: number };
-		/** Open straight on "Paste a list". */
-		paste?: boolean;
+		/** Which tab to open on: "Tell us your spots" (default) or search. */
+		start?: 'tell' | 'search';
 	};
-	let { map, ownerId, onclose, ondone, near, paste = false }: Props = $props();
+	let { map, ownerId, onclose, ondone, near, start = 'tell' }: Props = $props();
 
 	type Item = Place & {
 		category: CategoryKey | null;
@@ -41,7 +41,7 @@
 		alternatives: Place[];
 	};
 
-	let mode: 'search' | 'paste' = $state(untrack(() => (paste ? 'paste' : 'search')));
+	let mode: 'search' | 'paste' = $state(untrack(() => (start === 'tell' ? 'paste' : 'search')));
 	let items: Item[] = $state([]);
 	let open: string | null = $state(null);
 	let swapping: string | null = $state(null);
@@ -57,11 +57,9 @@
 	/** What was being looked up from `missing` when the search was seeded. */
 	let seeking: Parsed | null = null;
 
-	const EXAMPLE = [
-		'CTR Malleshwaram – benne masala dosa',
-		'Meghana, Koramangala. Boneless biryani',
-		'https://maps.app.goo.gl/…'
-	].join('\n');
+	// A casual message, not a tidy list: it shows people they can just write.
+	const EXAMPLE =
+		'CTR in Malleshwaram for benne dosa, Meghana Koramangala for the boneless biryani, and Toit when you want beers…\n\nOr paste a list or Google Maps links.';
 	const theme = $derived(getTheme(map.profile.theme));
 	const owned = untrack(() => new Set(map.spots.map((s) => s.name.toLowerCase())));
 
@@ -194,7 +192,14 @@
 	}
 </script>
 
-<Sheet title={map.spots.length ? 'Add several spots' : 'Add your top spots'} {onclose}>
+<Sheet
+	title={mode === 'paste'
+		? 'Tell us your spots'
+		: map.spots.length
+			? 'Search and add'
+			: 'Add your top spots'}
+	{onclose}
+>
 	<div
 		class="mb-3 grid grid-cols-2 gap-1 rounded-full border-2 border-ink bg-surface p-1"
 		role="tablist"
@@ -202,16 +207,16 @@
 		<button
 			type="button"
 			role="tab"
-			aria-selected={mode === 'search'}
+			aria-selected={mode === 'paste'}
 			class="tab rounded-full py-1.5 font-extrabold"
-			onclick={() => (mode = 'search')}>🔎 Search</button
+			onclick={() => (mode = 'paste')}>💬 Tell us</button
 		>
 		<button
 			type="button"
 			role="tab"
-			aria-selected={mode === 'paste'}
+			aria-selected={mode === 'search'}
 			class="tab rounded-full py-1.5 font-extrabold"
-			onclick={() => (mode = 'paste')}>📋 Paste a list</button
+			onclick={() => (mode = 'search')}>🔎 Search</button
 		>
 	</div>
 
@@ -222,7 +227,7 @@
 					look={lookOf(theme)}
 					{theme}
 					steps={[
-						'Reading your list…',
+						'Reading what you wrote…',
 						'Finding each place on the map…',
 						'Checking which branch…',
 						'Pulling out your tips…',
@@ -232,8 +237,8 @@
 			</div>
 		{:else}
 			<p class="mb-2 font-semibold opacity-80">
-				Got a list in WhatsApp or Notes? Paste it as it is. Names, areas, what to order, Google Maps
-				links: we’ll find each place.
+				Type it like you’d text a friend, or paste a list you already have. Names, areas, what to
+				order and Google Maps links all work.
 			</p>
 			<textarea
 				bind:value={text}
@@ -249,7 +254,7 @@
 				onclick={readList}
 				class="sticker mt-2 w-full rounded-full bg-ink py-2.5 text-lg font-extrabold text-surface disabled:opacity-40"
 			>
-				Find these places
+				Pin them →
 			</button>
 		{/if}
 	{:else}

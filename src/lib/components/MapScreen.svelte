@@ -128,8 +128,8 @@
 	// Owner sheets.
 	let editing: Spot | 'new' | null = $state(null);
 	let addingTop = $state(false);
-	/** Open the bulk sheet on "Paste a list" instead of search. */
-	let pasteFirst = $state(false);
+	/** Which tab the add-several sheet opens on. */
+	let addStart: 'tell' | 'search' = $state('tell');
 	/** The "Add spot" chooser: one, several, or paste a list. */
 	let choosingAdd = $state(false);
 	let menuOpen = $state(false);
@@ -636,17 +636,17 @@
 						</p>
 						<button
 							type="button"
-							onclick={() => ((pasteFirst = false), (addingTop = true))}
+							onclick={() => ((addStart = 'tell'), (addingTop = true))}
 							class="sticker mt-4 w-full rounded-full bg-sun py-3 text-lg font-extrabold"
 						>
 							Add your top spots →
 						</button>
 						<button
 							type="button"
-							onclick={() => ((pasteFirst = true), (addingTop = true))}
+							onclick={() => ((addStart = 'search'), (addingTop = true))}
 							class="mt-3 font-extrabold underline"
 						>
-							Got a list in WhatsApp or Notes? Paste it
+							Or search places one by one
 						</button>
 					{:else}
 						<h2 class="mt-2 text-2xl leading-tight font-extrabold">
@@ -884,7 +884,7 @@
 				choosingAdd = false;
 				if (choice === 'one') editing = 'new';
 				else {
-					pasteFirst = choice === 'paste';
+					addStart = choice === 'paste' ? 'tell' : 'search';
 					addingTop = true;
 				}
 			}}
@@ -895,7 +895,7 @@
 			{map}
 			ownerId={me.id}
 			near={viewCenter}
-			paste={pasteFirst}
+			start={addStart}
 			onclose={() => (addingTop = false)}
 			ondone={afterTop}
 		/>

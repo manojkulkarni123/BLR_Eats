@@ -56,7 +56,8 @@ try {
 	await shot('1-welcome');
 	await page.click('button:has-text("Make my map")');
 	await page.waitForURL(`**/${handle}**`);
-	await page.getByText('Add your top spots').first().waitFor();
+	await page.getByText('Tell us your spots').first().waitFor();
+	await page.click('[role=tab]:has-text("Search")');
 	step('handle created → top spots sheet open');
 
 	for (const q of ['CTR Malleswaram', 'Meghana Foods', 'Toit Indiranagar']) {
@@ -83,6 +84,8 @@ try {
 	step(`${pins} pin(s) drawn after first add`);
 
 	await page.click('button:has-text("Add spot")');
+	await page.getByText('Add to your map').waitFor();
+	await shot('chooser');
 	await page.click('button:has-text("Add one spot")');
 	await page.fill('input[placeholder^="Search a place"]', 'Corner House');
 	await page.locator('li button', { hasText: '＋' }).first().waitFor({ timeout: 10000 });
