@@ -14,6 +14,15 @@
 		const webview =
 			/Instagram|FBAN|FBAV|FB_IAB|FBIOS|Line\/|Snapchat|LinkedInApp|Twitter|; wv\)/i.test(ua);
 		if (webview) inApp = /Android/i.test(ua) ? 'android' : 'ios';
+
+		// Coming back from Google with the Back button restores this page from cache with the
+		// button stuck on "Opening Google…". Reset it so a fresh tap starts a new sign-in;
+		// reopening the old Google page is what gives Google's "400 malformed" error.
+		const reset = (e: PageTransitionEvent) => {
+			if (e.persisted) busy = false;
+		};
+		addEventListener('pageshow', reset);
+		return () => removeEventListener('pageshow', reset);
 	});
 
 	async function google() {
