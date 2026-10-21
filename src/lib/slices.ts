@@ -12,19 +12,21 @@ export function resolveSlice(map: FoodMap, slug: string): Slice | null {
 		return { kind: 'custom', slug, label: custom.name, emoji: custom.emoji, id: custom.id };
 	}
 	const list = map.lists.find((l) => l.slug === slug);
-	if (list) {
-		return {
-			kind: 'list',
-			slug,
-			label: list.name,
-			emoji: list.emoji,
-			id: list.id,
-			spotIds: list.spotIds
-		};
-	}
+	if (list) return listSlice(list);
 	const spot = map.spots.find((s) => s.areaSlug === slug);
 	if (spot) return { kind: 'area', slug, label: spot.area, emoji: '📍' };
 	return null;
+}
+
+function listSlice(list: FoodMap['lists'][number]): Slice {
+	return {
+		kind: 'list',
+		slug: list.slug,
+		label: list.name,
+		emoji: list.emoji,
+		id: list.id,
+		spotIds: list.spotIds
+	};
 }
 
 export function spotsInSlice(spots: Spot[], slice: Slice | null): Spot[] {
@@ -56,7 +58,7 @@ export function availableSlices(map: FoodMap): { slice: Slice; count: number }[]
 
 	// Hand-made lists first: they're the owner's own picks.
 	const lists = map.lists
-		.map((l) => resolveSlice(map, l.slug)!)
+		.map(listSlice)
 		.map((slice) => ({ slice, count: count(slice) }))
 		.filter((s) => s.count > 0);
 
@@ -66,7 +68,14 @@ export function availableSlices(map: FoodMap): { slice: Slice; count: number }[]
 		.map((slice) => ({ slice, count: count(slice) }))
 		.sort(byCount);
 
-	return [...lists, ...categories, ...areas];
+	// Slugs share one URL space; if two slices still clash, keep the one the URL resolves to.
+	// (Two chips with one key would crash the page.)
+	const seen = new Set<string>();
+	return [...lists, ...categories, ...areas].filter(({ slice }) => {
+		if (seen.has(slice.slug) || resolveSlice(map, slice.slug)?.kind !== slice.kind) return false;
+		seen.add(slice.slug);
+		return true;
+	});
 }
 
 /** Emoji shown on a spot's pin and card. */

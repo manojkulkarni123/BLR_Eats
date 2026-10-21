@@ -1,4 +1,4 @@
-import type { CategoryKey } from './categories.ts';
+import { CATEGORIES, type CategoryKey } from './categories.ts';
 import { resizePhoto } from './image.ts';
 import { slugify } from './slug.ts';
 import { supabase } from './supabase.ts';
@@ -27,6 +27,29 @@ function uniqueSlug(base: string, taken: Set<string>): string {
 	for (let i = 2; taken.has(slug); i++) slug = `${root}-${i}`;
 	taken.add(slug);
 	return slug;
+}
+
+/**
+ * A slug for a new list or custom category that no other slice on this map uses.
+ * Lists, categories and areas share one URL space (`/manoj/<slug>`), so a list called
+ * "Desserts" must not take the Desserts category's slug. Clashes become "desserts-list".
+ */
+async function sliceSlug(ownerId: string, name: string, suffix: string): Promise<string> {
+	const db = supabase();
+	const [lists, customs, areas] = await Promise.all([
+		db.from('lists').select('slug').eq('owner_id', ownerId),
+		db.from('custom_categories').select('slug').eq('owner_id', ownerId),
+		db.from('spots').select('area_slug').eq('owner_id', ownerId)
+	]);
+	fail(lists.error ?? customs.error ?? areas.error);
+	const taken = new Set<string>([
+		...CATEGORIES.map((c) => c.key),
+		...(lists.data ?? []).map((r) => r.slug as string),
+		...(customs.data ?? []).map((r) => r.slug as string),
+		...(areas.data ?? []).map((r) => r.area_slug as string)
+	]);
+	const base = slugify(name) || suffix;
+	return uniqueSlug(taken.has(base) ? `${base}-${suffix}` : base, taken);
 }
 
 function row(ownerId: string, input: SpotInput, slug: string) {
@@ -128,7 +151,12 @@ export async function createCustomCategory(
 ): Promise<string> {
 	const { data, error } = await supabase()
 		.from('custom_categories')
-		.insert({ owner_id: ownerId, name: name.trim(), slug: slugify(name), emoji: emoji || '📍' })
+		.insert({
+			owner_id: ownerId,
+			name: name.trim(),
+			slug: await sliceSlug(ownerId, name, 'picks'),
+			emoji: emoji || '📍'
+		})
 		.select('id')
 		.single();
 	fail(error);
@@ -194,7 +222,12 @@ export async function uploadAvatar(
 export async function createList(ownerId: string, name: string, emoji: string): Promise<string> {
 	const { data, error } = await supabase()
 		.from('lists')
-		.insert({ owner_id: ownerId, name: name.trim(), slug: slugify(name), emoji: emoji || '⭐' })
+		.insert({
+			owner_id: ownerId,
+			name: name.trim(),
+			slug: await sliceSlug(ownerId, name, 'list'),
+			emoji: emoji || '⭐'
+		})
 		.select('id')
 		.single();
 	fail(error);
