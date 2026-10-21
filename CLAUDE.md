@@ -15,6 +15,7 @@ Product decisions and their reasons live in `DECISIONS.md`. It's local and gitig
 - `npm run lint` / `npm run format`: Prettier + ESLint
 - `npm run build`: production build (Vercel adapter)
 - `node scripts/shot.mjs <url> <out.png> [waitMs] ["await page.click(...)"]`: Pixel 7-sized screenshot through the system Edge browser, printing console errors. Use it to check UI changes.
+- `node --env-file=.env scripts/e2e-signup.mjs <outDir>` / `scripts/e2e-paste-list.mjs`: full journeys in a phone browser against the dev server (or `BASE_URL`), with a throwaway user
 - `node scripts/icons.mjs`: re-render the PNG app icons from `static/icon.svg`
 
 ## SvelteKit 3 specifics (newer than most examples)
@@ -35,7 +36,8 @@ Product decisions and their reasons live in `DECISIONS.md`. It's local and gitig
 - **Map:** MapLibre with OpenFreeMap tiles (no key). The worker URL must be set explicitly (`setWorkerUrl` with a `?url` import). Pins are HTML markers clustered with supercluster. MapLibre positions markers with `transform`, so animate the inner `.pin-pop` element, never `.pin`.
 - **Link previews:** `src/routes/og/[handle].png/+server.ts` renders a PNG with satori + resvg (`src/lib/server/og.ts`), using `?slice=` / `?spot=` variants. `@resvg/resvg-js` is native, so it's excluded from Vite's dep optimizer and SSR bundling.
 - **Sign-in:** a 6-digit email code (`SignIn.svelte`, `verifyOtp`), plus `auth/callback` for the email link (`token_hash`). The flow is `/welcome` (pick a handle) → `/<handle>?add=top`, which opens the bulk "Add your top spots" sheet.
-- **Place search:** Photon (OpenStreetMap) limited to the Bangalore bounding box, in `src/lib/places.ts`. The DB also rejects coordinates outside Bangalore.
+- **Place search:** `src/lib/places.ts`. Typo-tolerant known places (the `search_known_places` RPC, pg_trgm over every map's spots) are merged ahead of Photon (OpenStreetMap, limited to the Bangalore bounding box). The DB also rejects coordinates outside Bangalore. A pasted Google Maps link is resolved server-side by `/api/place-link` (`server/google-maps.ts` reads the name and pin from the redirected URL, with no Google API).
+- **AI:** `src/lib/server/ai.ts` (`aiJson`, any OpenAI-compatible API, Groq by default) powers Ask this map (`server/ask.ts`) and paste a list (`server/parse-list.ts`, `/api/parse-list`). The AI only extracts or picks; places always come from real data. Both share the daily `take_ai_ask` caps.
 
 ## Principles that shape changes
 

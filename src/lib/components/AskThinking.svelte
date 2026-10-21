@@ -5,14 +5,17 @@
 	import type { Theme } from '#lib/theme.ts';
 
 	// Shown the moment someone asks, so they're never left staring at a still screen.
-	let { owner, look = 'pop', theme }: { owner: string; look?: Look; theme?: Theme } = $props();
+	type Props = { owner?: string; look?: Look; theme?: Theme; steps?: string[] };
+	let { owner = '', look = 'pop', theme, steps: custom }: Props = $props();
 	const foods = ['south-indian', 'asian', 'biryani'] as const;
-	const steps = $derived([
-		`Reading ${owner}'s tips…`,
-		'Matching your mood…',
-		'Picking the best spots…',
-		'Almost there…'
-	]);
+	const steps = $derived(
+		custom ?? [
+			`Reading ${owner}'s tips…`,
+			'Matching your mood…',
+			'Picking the best spots…',
+			'Almost there…'
+		]
+	);
 	let step = $state(0);
 
 	onMount(() => {

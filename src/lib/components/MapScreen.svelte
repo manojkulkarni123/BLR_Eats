@@ -127,6 +127,8 @@
 	// Owner sheets.
 	let editing: Spot | 'new' | null = $state(null);
 	let addingTop = $state(false);
+	/** Open the bulk sheet on "Paste a list" instead of search. */
+	let pasteFirst = $state(false);
 	let menuOpen = $state(false);
 	let editingProfile = $state(false);
 	let managingLists = $state(false);
@@ -478,9 +480,16 @@
 					<button
 						type="button"
 						class="menu-item"
-						onclick={() => ((menuOpen = false), (addingTop = true))}
+						onclick={() => ((menuOpen = false), (pasteFirst = false), (addingTop = true))}
 					>
 						⚡ Add several spots
+					</button>
+					<button
+						type="button"
+						class="menu-item"
+						onclick={() => ((menuOpen = false), (pasteFirst = true), (addingTop = true))}
+					>
+						📋 Paste a list
 					</button>
 					<button
 						type="button"
@@ -645,10 +654,17 @@
 						</p>
 						<button
 							type="button"
-							onclick={() => (addingTop = true)}
+							onclick={() => ((pasteFirst = false), (addingTop = true))}
 							class="sticker mt-4 w-full rounded-full bg-sun py-3 text-lg font-extrabold"
 						>
 							Add your top spots →
+						</button>
+						<button
+							type="button"
+							onclick={() => ((pasteFirst = true), (addingTop = true))}
+							class="mt-3 font-extrabold underline"
+						>
+							Got a list in WhatsApp or Notes? Paste it
 						</button>
 					{:else}
 						<h2 class="mt-2 text-2xl leading-tight font-extrabold">
@@ -884,6 +900,7 @@
 			{map}
 			ownerId={me.id}
 			near={viewCenter}
+			paste={pasteFirst}
 			onclose={() => (addingTop = false)}
 			ondone={afterTop}
 		/>

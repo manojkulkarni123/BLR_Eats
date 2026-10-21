@@ -1,4 +1,5 @@
-import type { CategoryKey } from './categories.ts';
+import type { SupabaseClient } from '@supabase/supabase-js';
+import { CATEGORIES, type CategoryKey } from './categories.ts';
 
 // Place search on OpenStreetMap data (Photon): free, no API key, Bangalore only.
 const BANGALORE_BBOX = '77.35,12.75,77.85,13.25';
@@ -29,6 +30,8 @@ export type Place = {
 	osmId: string;
 	isFood: boolean;
 	suggestedCategory: CategoryKey | null;
+	/** How many blr_eats maps already have this place (known-place results only). */
+	pinnedBy?: number;
 };
 
 type PhotonFeature = {
@@ -48,7 +51,8 @@ type PhotonFeature = {
 };
 
 // OSM tags and names that hint at a category, so the right chip is already picked.
-function suggest(value: string, name: string): CategoryKey | null {
+// Pass an empty value to guess from the name alone.
+export function suggest(value: string, name: string): CategoryKey | null {
 	const n = name.toLowerCase();
 	if (/biryani/.test(n)) return 'biryani';
 	if (/pizza/.test(n)) return 'pizza';
@@ -186,4 +190,64 @@ export async function foodNear(
 		.filter((f) => f.properties.name)
 		.map(toPlace)
 		.sort((a, b) => distanceM(at, a) - distanceM(at, b));
+}
+
+/** An id for places that aren't from OpenStreetMap. Saved as no OSM id. */
+export const localId = (lat: number, lng: number) => `x:${lat.toFixed(5)},${lng.toFixed(5)}`;
+
+type Known = {
+	name: string;
+	area: string;
+	lat: number;
+	lng: number;
+	category: string | null;
+	osm_id: string | null;
+	pinned_by: number;
+	score: number;
+};
+const KEYS: string[] = CATEGORIES.map((c) => c.key);
+
+/**
+ * Places already pinned on any blr_eats map, typo-tolerant ("meghna" finds Meghana):
+ * trigram matching in Postgres (search_known_places), same place on several maps shown once.
+ */
+export async function searchKnown(
+	db: SupabaseClient,
+	query: string,
+	near: { lat: number; lng: number } = CITY_CENTRE,
+	max = 4
+): Promise<Place[]> {
+	const q = query.trim();
+	if (q.length < 3) return [];
+	const { data } = await db.rpc('search_known_places', {
+		q,
+		near_lat: near.lat,
+		near_lng: near.lng,
+		max_results: max
+	});
+	return ((data ?? []) as Known[])
+		.filter((k) => k.score >= 0.5)
+		.map((k) => ({
+			name: k.name,
+			lat: k.lat,
+			lng: k.lng,
+			area: k.area,
+			street: '',
+			osmId: k.osm_id ?? localId(k.lat, k.lng),
+			isFood: true,
+			suggestedCategory: KEYS.includes(k.category ?? '') ? (k.category as CategoryKey) : null,
+			pinnedBy: k.pinned_by
+		}));
+}
+
+/** Known places first, then OSM ones that aren't the same place. */
+export function mergePlaces(known: Place[], osm: Place[]): Place[] {
+	const seen = new Set<string>();
+	return [...known, ...osm].filter((p) => {
+		const key = `${p.name.toLowerCase()}|${p.lat.toFixed(3)}|${p.lng.toFixed(3)}`;
+		if (seen.has(key) || seen.has(p.osmId)) return false;
+		seen.add(key);
+		seen.add(p.osmId);
+		return true;
+	});
 }

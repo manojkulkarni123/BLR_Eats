@@ -1,6 +1,14 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
-	import { distanceM, foodNear, searchPlaces, type Place } from '#lib/places.ts';
+	import {
+		distanceM,
+		foodNear,
+		mergePlaces,
+		searchKnown,
+		searchPlaces,
+		type Place
+	} from '#lib/places.ts';
+	import { supabase } from '#lib/supabase.ts';
 
 	type Props = {
 		onpick: (place: Place) => void;
@@ -11,14 +19,17 @@
 		onhere?: (at: { lat: number; lng: number }) => void;
 		placeholder?: string;
 		autofocus?: boolean;
+		/** Search for this text (e.g. a place from a pasted list that wasn't found). */
+		seed?: string;
 	};
 	let {
 		onpick,
 		near,
 		locate = false,
 		onhere,
-		placeholder = 'Search a place, e.g. CTR',
-		autofocus = true
+		placeholder = 'Search a place, or paste a Google Maps link',
+		autofocus = true,
+		seed = ''
 	}: Props = $props();
 
 	let query = $state('');
@@ -36,6 +47,30 @@
 		if (autofocus) input.focus();
 	});
 
+	$effect(() => {
+		if (!seed) return;
+		query = seed;
+		input.focus();
+		run();
+	});
+
+	// A Google Maps link (shared from the app or copied from the browser).
+	const MAPS_LINK =
+		/https?:\/\/(maps\.app\.goo\.gl|goo\.gl\/maps|(www\.)?google\.[a-z.]+\/maps|maps\.google\.)/i;
+
+	async function fromLink(url: string, signal: AbortSignal): Promise<Place[]> {
+		const res = await fetch('/api/place-link', {
+			method: 'POST',
+			headers: { 'Content-Type': 'application/json' },
+			body: JSON.stringify({ url }),
+			signal
+		});
+		if (res.ok) return [(await res.json()) as Place];
+		message =
+			((await res.json().catch(() => null)) as { message?: string } | null)?.message ?? null;
+		return [];
+	}
+
 	function onInput() {
 		here = null;
 		clearTimeout(timer);
@@ -48,8 +83,22 @@
 		loading = true;
 		message = null;
 		try {
-			results = await searchPlaces(query, near, controller.signal);
-			searched = query.trim().length >= 2;
+			const { signal } = controller;
+			if (MAPS_LINK.test(query)) {
+				results = await fromLink(query.trim(), signal);
+				searched = !message;
+			} else {
+				// Places on blr_eats maps are typo-tolerant; OSM fills in the rest.
+				const [known, osm] = await Promise.all([
+					searchKnown(supabase(), query, near).catch(() => []),
+					searchPlaces(query, near, signal).catch((e) => {
+						if (e instanceof DOMException && e.name === 'AbortError') throw e;
+						return [];
+					})
+				]);
+				results = mergePlaces(known, osm).slice(0, 10);
+				searched = query.trim().length >= 2;
+			}
 		} catch (e) {
 			if (!(e instanceof DOMException && e.name === 'AbortError')) results = [];
 		} finally {
@@ -140,8 +189,14 @@
 						<span class="min-w-0 flex-1">
 							<span class="block truncate font-extrabold">{place.name}</span>
 							<span class="block truncate text-sm font-semibold opacity-60"
-								>{[metres(place), place.street, place.area].filter(Boolean).join(' · ') ||
-									'Bangalore'}</span
+								>{[
+									metres(place),
+									place.street,
+									place.area,
+									place.pinnedBy && `on ${place.pinnedBy} ${place.pinnedBy === 1 ? 'map' : 'maps'}`
+								]
+									.filter(Boolean)
+									.join(' · ') || 'Bangalore'}</span
 							>
 						</span>
 						<span class="font-extrabold">＋</span>
