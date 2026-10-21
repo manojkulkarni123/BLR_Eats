@@ -1,69 +1,53 @@
 <script lang="ts">
+	import { onMount } from 'svelte';
 	import { page } from '$app/state';
 	import SignIn from '#lib/components/SignIn.svelte';
-	import PosterMiniMap from '#lib/components/PosterMiniMap.svelte';
+	import Phone from '#lib/components/Phone.svelte';
 	import FoodIcon from '#lib/components/FoodIcon.svelte';
 	import InstagramIcon from '#lib/components/InstagramIcon.svelte';
-	import { iconColors, iconKeyFor } from '#lib/look.ts';
 	import { bengaluruPoster as theme, themeCssVars } from '#lib/theme.ts';
+	import type { CategoryKey } from '#lib/categories.ts';
 	import type { PageProps } from './$types';
 
 	let { data }: PageProps = $props();
 	const expired = $derived(page.url.searchParams.get('signin') === 'expired');
-	const spots = $derived(data.demo);
-	const spot = (name: string) => spots.find((s) => s.name === name);
-	const hero = $derived(spot('Vidyarthi Bhavan'));
-	const sweet = $derived(spot('Corner House'));
+	const signedIn = $derived(Boolean(data.me));
+	const myMap = $derived(data.me?.handle ? `/${data.me.handle}` : '/welcome');
+
+	// Food stickers floating around the hero phones.
+	const sticker = (kind: CategoryKey) => ({
+		spot: theme.categories[kind].bg,
+		ink: theme.ui.ink,
+		paper: theme.ui.surface,
+		cream: '#F4D9A0'
+	});
 
 	// The "before": how food recs travel today.
 	const chat = [
+		'ok my list 👇',
 		'1. CTR malleshwaram – benne dosa, go early',
-		'2. vidyarthi bhavan (masala dosa obv)',
-		'3. meghana koramangala boneless biryani!!',
-		'4. toit for beers',
-		'5. corner house – death by chocolate',
-		'also koshys for breakfast'
-	];
-	const fromChat = $derived(
-		['CTR', 'Vidyarthi Bhavan', 'Meghana Foods', 'Toit', 'Corner House', "Koshy's"]
-			.map(spot)
-			.filter((s) => s !== undefined)
-	);
-
-	const steps = [
-		{
-			n: '1',
-			title: 'Tell us your spots',
-			body: 'Type it like you’d text a friend, say it out loud, or drop in screenshots and Google Maps links. We find every place.'
-		},
-		{
-			n: '2',
-			title: 'Get your map',
-			body: 'Each spot pinned with its address and your tip. Pick a look: Bengaluru Poster or Namma Pop.'
-		},
-		{
-			n: '3',
-			title: 'Share one link',
-			body: 'Your whole map, just your dosa places, or one spot. It previews beautifully in WhatsApp.'
-		}
+		'2. meghana koramangala boneless biryani!!',
+		'3. toit for beers',
+		'4. corner house death by chocolate 🍫'
 	];
 
-	const shares = [
-		{ path: '/demo', what: 'Your whole map', when: 'For your Instagram bio' },
-		{ path: '/demo/south-indian', what: 'A slice', when: '“Where should I get dosa?”' },
-		{
-			path: '/demo/spot/vidyarthi-bhavan-basavanagudi',
-			what: 'One spot',
-			when: '“You HAVE to try this”'
-		}
-	];
+	// The sticky "Make your map" bar shows once the hero's button has scrolled away.
+	let heroCta: HTMLElement;
+	let showBar = $state(false);
+	onMount(() => {
+		const io = new IntersectionObserver(([e]) => (showBar = !e.isIntersecting), {
+			rootMargin: '0px 0px -40px 0px'
+		});
+		io.observe(heroCta);
+		return () => io.disconnect();
+	});
 </script>
 
 <svelte:head>
 	<title>blr_eats · Your Bangalore food map</title>
 	<meta
 		name="description"
-		content="Turn your favourite Bangalore food spots into one map your friends actually open. Type, say or screenshot your list; share one link."
+		content="Put your favourite Bangalore food spots on one map your friends will actually open. Paste a list, say it, or add screenshots; share one link."
 	/>
 	<meta property="og:title" content="blr_eats · Your Bangalore food map" />
 	<meta property="og:description" content="Stop sending food lists. Share a map." />
@@ -72,24 +56,33 @@
 </svelte:head>
 
 <div class="look-poster landing" style={themeCssVars(theme)}>
+	<nav class="mx-auto flex max-w-6xl items-center justify-between px-5 py-4 md:px-8">
+		<a href="/" class="title text-2xl font-black">blr_eats</a>
+		<div class="flex items-center gap-4 text-[15px] font-extrabold">
+			<a href="/demo" class="hidden underline-offset-4 hover:underline sm:inline">See a map</a>
+			{#if signedIn}
+				<a href={myMap} class="btn-ink">My map</a>
+			{:else}
+				<a href="#start" class="btn-ink">Make your map</a>
+			{/if}
+		</div>
+	</nav>
+
 	<!-- Hero -->
 	<header
-		class="mx-auto grid max-w-5xl gap-10 px-5 pt-8 pb-14 md:grid-cols-2 md:items-center md:pt-16"
+		class="mx-auto grid max-w-6xl items-center gap-12 px-5 pt-6 pb-4 md:grid-cols-[1.05fr_1fr] md:px-8 md:pt-14 md:pb-28"
 	>
-		<div class="flex flex-col gap-5">
-			<p class="text-sm font-extrabold tracking-[0.22em] uppercase">blr_eats · Bengaluru</p>
-			<h1 class="title text-[54px] leading-[0.92] font-black md:text-7xl">
+		<div id="start" class="flex flex-col gap-6">
+			<h1 class="title hero-title font-black">
 				Stop sending food <span class="strike">lists</span>.
 			</h1>
-			<p class="text-xl leading-snug font-semibold opacity-80">
-				Turn your favourite Bangalore spots into one map your friends actually open. They tap a pin,
-				see what to order, and go eat.
+			<p class="max-w-md text-xl leading-snug font-semibold opacity-75 md:text-2xl">
+				Put your favourite Bangalore spots on one map. Friends tap a pin, see what to order, and go.
 			</p>
-			<div class="flex flex-col gap-3">
-				{#if data.me?.handle}
-					<a href="/{data.me.handle}" class="cta">Open my map →</a>
-				{:else if data.me}
-					<a href="/welcome" class="cta">Finish making my map →</a>
+			<div bind:this={heroCta} class="flex max-w-sm flex-col gap-3">
+				{#if signedIn}
+					<a href={myMap} class="btn-sun">{data.me?.handle ? 'Open my map →' : 'Finish my map →'}</a
+					>
 				{:else}
 					{#if expired}
 						<p class="font-extrabold text-accent">That sign-in expired. Try again.</p>
@@ -103,206 +96,236 @@
 					See a real map first →
 				</a>
 			</div>
-			<p class="text-sm font-semibold opacity-60">Free · takes two minutes · no app to install</p>
+			<p class="text-sm font-bold opacity-55">Free · two minutes · nothing to install</p>
 		</div>
 
-		{#if spots.length}
-			<div class="relative mx-auto w-full max-w-[380px]">
-				<PosterMiniMap
-					{spots}
-					{theme}
-					ratio="1 / 1"
-					label="Demo’s Bengaluru · {spots.length} spots"
-				/>
-				{#if hero}
-					<div
-						class="float-card absolute -bottom-6 -left-3 w-[78%] rounded-3xl border-2 border-ink bg-surface p-3.5"
-					>
-						<div class="flex items-center gap-2.5">
-							<span
-								class="grid size-11 shrink-0 place-items-center rounded-full border-2 border-ink"
-								style="background:{iconColors(theme, hero).spot}"
-							>
-								<FoodIcon kind={iconKeyFor(hero)} colors={iconColors(theme, hero)} size={30} />
-							</span>
-							<div class="min-w-0">
-								<p class="title truncate text-lg leading-tight font-black">{hero.name}</p>
-								<p class="truncate text-xs font-semibold opacity-60">
-									{hero.address} · {hero.area}
-								</p>
-							</div>
-						</div>
-						<p class="mt-2 text-[15px] leading-snug font-semibold">“{hero.recommendation}”</p>
-					</div>
-				{/if}
-			</div>
-		{/if}
+		<div class="relative mx-auto h-[540px] w-full max-w-[460px] md:h-[620px]">
+			<Phone
+				src="/landing/spot.jpg"
+				alt="A spot on a blr_eats map: Vidyarthi Bhavan, its address and the owner’s tip"
+				tilt={7}
+				class="absolute top-10 right-0 w-[56%] md:w-[58%]"
+			/>
+			<Phone
+				src="/landing/map.jpg"
+				alt="A blr_eats map of Bangalore with illustrated food pins"
+				tilt={-5}
+				eager
+				class="absolute top-0 left-0 w-[60%] md:w-[62%]"
+			/>
+			<span class="sticker-badge" style="left:-2%;bottom:16%;rotate:-12deg">
+				<FoodIcon kind="biryani" colors={sticker('biryani')} size={46} />
+			</span>
+			<span class="sticker-badge" style="right:-3%;top:2%;rotate:10deg">
+				<FoodIcon kind="cafes" colors={sticker('cafes')} size={42} />
+			</span>
+			<span class="sticker-badge" style="right:8%;bottom:4%;rotate:-6deg">
+				<FoodIcon kind="desserts" colors={sticker('desserts')} size={42} />
+			</span>
+		</div>
 	</header>
 
-	<!-- Before / after: the whole idea in one picture -->
-	<section class="band">
-		<div class="mx-auto max-w-5xl px-5 py-14">
-			<h2 class="title text-4xl leading-none font-black md:text-5xl">
-				From this <span class="opacity-40">→</span> to this.
-			</h2>
-			<p class="mt-3 max-w-xl text-lg font-semibold opacity-75">
-				Food recs travel as forwarded lists that nobody saves. A map is something people open, tap
-				around and come back to.
+	<!-- 1. The list you already have -->
+	<section class="feature">
+		<div class="copy">
+			<p class="kicker">Got a list?</p>
+			<h2 class="title h2 font-black">Paste the one you already sent.</h2>
+			<p class="lede">
+				That WhatsApp message with your 12 places? Drop it in. We find every spot, pick the right
+				branch and keep your tips.
 			</p>
-			<div class="mt-8 grid items-center gap-6 md:grid-cols-[1fr_auto_1fr]">
-				<div class="chat mx-auto w-full max-w-[360px]">
-					<p class="mb-1 text-xs font-bold italic opacity-60">↪ Forwarded</p>
-					{#each chat as line (line)}
-						<p class="text-[15px] leading-snug">{line}</p>
-					{/each}
-					<p class="mt-1 text-right text-[11px] opacity-50">11:42 pm ✓✓</p>
-				</div>
-				<p class="text-center text-4xl font-black md:rotate-0" aria-hidden="true">↓</p>
-				<div class="mx-auto w-full max-w-[300px]">
-					<PosterMiniMap spots={fromChat} {theme} pop={false} names ratio="1 / 1" />
-				</div>
-			</div>
 		</div>
-	</section>
-
-	<!-- How it works -->
-	<section class="mx-auto max-w-5xl px-5 py-14">
-		<h2 class="title text-4xl leading-none font-black md:text-5xl">Your map in two minutes.</h2>
-		<ol class="mt-8 grid gap-4 md:grid-cols-3">
-			{#each steps as s (s.n)}
-				<li class="card">
-					<span class="num">{s.n}</span>
-					<h3 class="title mt-3 text-2xl leading-tight font-black">{s.title}</h3>
-					<p class="mt-1.5 font-semibold opacity-75">{s.body}</p>
-				</li>
-			{/each}
-		</ol>
-		<div class="mt-5 flex flex-wrap gap-2 text-sm font-extrabold">
-			<span class="pill">💬 Type it</span>
-			<span class="pill">🎙️ Say it</span>
-			<span class="pill">📷 Screenshots</span>
-			<span class="pill">📍 Google Maps links</span>
-			<span class="pill">🔎 Typo-proof search</span>
-		</div>
-	</section>
-
-	<!-- Share sizes -->
-	<section class="band">
-		<div class="mx-auto max-w-5xl px-5 py-14">
-			<h2 class="title text-4xl leading-none font-black md:text-5xl">
-				Share whatever’s on screen.
-			</h2>
-			<p class="mt-3 max-w-xl text-lg font-semibold opacity-75">
-				Filter your map and the Share button shares exactly that. Every link opens instantly, no
-				login, no app.
-			</p>
-			<ul class="mt-8 grid gap-3 md:grid-cols-3">
-				{#each shares as s (s.path)}
-					<li class="min-w-0">
-						<a href={s.path} class="card block h-full">
-							<p class="title text-2xl font-black">{s.what}</p>
-							<p class="mt-0.5 font-semibold opacity-70">{s.when}</p>
-							<p class="link mt-3 truncate">blr-eats.vercel.app{s.path}</p>
-						</a>
-					</li>
+		<div class="flex flex-col items-center justify-center gap-4 md:flex-row md:gap-6">
+			<div class="chat-bubble w-[78%] max-w-[300px] md:w-[52%]">
+				{#each chat as line, i (line)}
+					<p class={i === 0 ? 'mb-1 font-semibold' : ''}>{line}</p>
 				{/each}
+				<p class="mt-1 text-right text-[11px] opacity-50">11:42 pm ✓✓</p>
+			</div>
+			<span class="arrow" aria-hidden="true"
+				><span class="md:hidden">↓</span><span class="hidden md:inline">→</span></span
+			>
+			<Phone
+				src="/landing/review.jpg"
+				alt="The pasted list turned into matched places with their tips"
+				class="w-[58%] max-w-[260px] shrink-0 md:w-[40%]"
+			/>
+		</div>
+	</section>
+
+	<!-- 2. Other ways in -->
+	<section class="feature flip">
+		<div class="copy">
+			<p class="kicker">No list? No problem.</p>
+			<h2 class="title h2 font-black">Or just say it.</h2>
+			<p class="lede">Tell us your spots the way you’d tell a friend.</p>
+			<ul class="mt-6 grid gap-3 text-lg font-bold">
+				<li class="way"><span>💬</span> Type it like a text</li>
+				<li class="way"><span>🎙️</span> Say it out loud</li>
+				<li class="way"><span>📷</span> Add screenshots from Zomato or Instagram</li>
+				<li class="way"><span>📍</span> Paste Google Maps links</li>
 			</ul>
 		</div>
+		<div class="flex justify-center">
+			<Phone
+				src="/landing/tell.jpg"
+				alt="Tell us your spots: a text box with voice and screenshot buttons"
+				tilt={-3}
+				class="w-[62%] max-w-[290px]"
+			/>
+		</div>
 	</section>
 
-	<!-- Ask the map -->
-	<section class="mx-auto grid max-w-5xl gap-8 px-5 py-14 md:grid-cols-2 md:items-center">
-		<div>
-			<h2 class="title text-4xl leading-none font-black md:text-5xl">People can ask your map.</h2>
-			<p class="mt-3 text-lg font-semibold opacity-75">
-				“Somewhere sweet after dinner?” Visitors ask in their own words, and the answer comes only
-				from your spots and your tips. It never makes places up.
+	<!-- 3. Sharing, from the friend's side -->
+	<section class="feature">
+		<div class="copy">
+			<p class="kicker">Then share it</p>
+			<h2 class="title h2 font-black">One link. They’re in.</h2>
+			<p class="lede">
+				Send your whole map, just your dosa spots, or one place. No app, no login. It just opens.
 			</p>
 		</div>
-		{#if sweet}
-			<div class="card flex flex-col gap-3">
-				<p class="self-end rounded-2xl rounded-br-md bg-ink px-3.5 py-2 font-bold text-paper">
-					somewhere sweet after dinner in town?
-				</p>
-				<div class="flex items-start gap-2.5">
-					<span
-						class="grid size-11 shrink-0 place-items-center rounded-full border-2 border-ink"
-						style="background:{iconColors(theme, sweet).spot}"
-					>
-						<FoodIcon kind={iconKeyFor(sweet)} colors={iconColors(theme, sweet)} size={30} />
-					</span>
-					<div>
-						<p class="title text-xl leading-tight font-black">{sweet.name}</p>
-						<p class="text-sm font-semibold opacity-60">{sweet.address} · {sweet.area}</p>
-						<p class="mt-1 font-semibold">“{sweet.recommendation}”</p>
+		<div class="flex justify-center">
+			<div class="wa">
+				<p class="wa-them">where should we eat this weekend??</p>
+				<div class="wa-me">
+					<div class="wa-preview">
+						<img
+							src="/og/demo.png"
+							alt="The link preview of a blr_eats map"
+							width="1200"
+							height="630"
+							loading="lazy"
+						/>
+						<div class="px-2.5 py-2">
+							<p class="text-[13px] leading-tight font-bold">Demo's Bangalore food map</p>
+							<p class="text-[12px] opacity-60">11 spots, picked by Demo</p>
+							<p class="mt-0.5 text-[11px] opacity-50">blr-eats.vercel.app</p>
+						</div>
 					</div>
+					<p class="mt-1.5">all my spots are here 👆</p>
 				</div>
-				<p class="text-xs font-extrabold tracking-wider uppercase opacity-50">✨ Ask the map</p>
+				<p class="wa-them">ok this is amazing. saving it</p>
 			</div>
-		{/if}
+		</div>
+	</section>
+
+	<!-- 4. Ask -->
+	<section class="feature flip">
+		<div class="copy">
+			<p class="kicker">Built in</p>
+			<h2 class="title h2 font-black">They can ask it things.</h2>
+			<p class="lede">
+				“Somewhere sweet after dinner?” Answers come only from your spots and your tips. It never
+				makes places up.
+			</p>
+		</div>
+		<div class="flex justify-center">
+			<Phone
+				src="/landing/ask.jpg"
+				alt="Ask the map answering ‘somewhere sweet after dinner?’ with Corner House"
+				tilt={3}
+				class="w-[62%] max-w-[290px]"
+			/>
+		</div>
 	</section>
 
 	<!-- Creators -->
-	<section class="band">
-		<div class="mx-auto max-w-5xl px-5 py-14">
-			<h2 class="title text-4xl leading-none font-black md:text-5xl">Made for food creators.</h2>
-			<ul class="mt-8 grid gap-4 md:grid-cols-3">
-				<li class="card">
-					<InstagramIcon class="size-8" />
-					<h3 class="title mt-2 text-2xl font-black">A Follow button</h3>
-					<p class="mt-1 font-semibold opacity-75">
-						Every map links to your Instagram, and every tip is credited to you.
-					</p>
+	<section class="mx-auto max-w-6xl px-5 py-16 md:px-8">
+		<div class="creators">
+			<div>
+				<p class="kicker">Food creator?</p>
+				<h2 class="title h2 font-black">The link for your bio.</h2>
+			</div>
+			<ul class="grid gap-6 sm:grid-cols-3">
+				<li>
+					<InstagramIcon class="size-7" />
+					<p class="mt-2 text-lg font-extrabold">A Follow button</p>
+					<p class="font-semibold opacity-70">on your map, and your name on every tip.</p>
 				</li>
-				<li class="card">
-					<span class="text-3xl">👀</span>
-					<h3 class="title mt-2 text-2xl font-black">See who’s looking</h3>
-					<p class="mt-1 font-semibold opacity-75">
-						View counts for your map, so you know what your followers open.
-					</p>
+				<li>
+					<span class="text-2xl">👀</span>
+					<p class="mt-2 text-lg font-extrabold">View counts</p>
+					<p class="font-semibold opacity-70">so you know what your followers open.</p>
 				</li>
-				<li class="card">
-					<span class="text-3xl">🔗</span>
-					<h3 class="title mt-2 text-2xl font-black">One link in bio</h3>
-					<p class="mt-1 font-semibold opacity-75">
-						Answer “where should I eat?” for the hundredth time with one link.
-					</p>
+				<li>
+					<span class="text-2xl">🔗</span>
+					<p class="mt-2 text-lg font-extrabold">One answer</p>
+					<p class="font-semibold opacity-70">to “where should I eat?”, forever.</p>
 				</li>
 			</ul>
 		</div>
 	</section>
 
 	<!-- Final call -->
-	<section class="mx-auto flex max-w-md flex-col gap-4 px-5 py-16 text-center">
-		<h2 class="title text-5xl leading-[0.95] font-black">Your map is two minutes away.</h2>
-		<p class="text-lg font-semibold opacity-75">Start with the five places you always recommend.</p>
-		{#if data.me?.handle}
-			<a href="/{data.me.handle}" class="cta">Open my map →</a>
-		{:else if data.me}
-			<a href="/welcome" class="cta">Finish making my map →</a>
-		{:else}
-			<SignIn />
-		{/if}
+	<section class="mx-auto flex max-w-xl flex-col items-center gap-5 px-5 pt-10 pb-24 text-center">
+		<h2 class="title final font-black">Make your map. It takes two minutes.</h2>
+		<p class="text-lg font-semibold opacity-70">Start with the five places you always recommend.</p>
+		<div class="w-full max-w-sm">
+			{#if signedIn}
+				<a href={myMap} class="btn-sun">{data.me?.handle ? 'Open my map →' : 'Finish my map →'}</a>
+			{:else}
+				<SignIn />
+			{/if}
+		</div>
 	</section>
 
 	<footer
-		class="mx-auto flex max-w-5xl flex-wrap items-center justify-between gap-2 px-5 pb-10 text-sm font-semibold opacity-60"
+		class="mx-auto flex max-w-6xl flex-wrap items-center justify-between gap-3 px-5 pb-28 text-sm font-semibold opacity-60 md:px-8 md:pb-10"
 	>
-		<span>Made in Bengaluru 🌳</span>
-		<span class="flex gap-4">
+		<span class="title text-lg font-black">blr_eats</span>
+		<span class="flex gap-5">
 			<a href="/demo" class="underline">Demo map</a>
 			<a href="/privacy" class="underline">Privacy</a>
 		</span>
 		<span class="w-full text-xs">
-			Place data: Overture Maps Foundation, © OpenStreetMap contributors.
+			Made in Bengaluru. Place data: Overture Maps Foundation, © OpenStreetMap contributors.
 		</span>
 	</footer>
+
+	{#if !signedIn}
+		<div class="sticky-bar md:hidden" class:show={showBar} aria-hidden={!showBar}>
+			<a href="#start" class="btn-sun" tabindex={showBar ? 0 : -1}>Make your map, free →</a>
+		</div>
+	{/if}
 </div>
 
 <style>
 	.landing {
 		background: var(--paper);
 		min-height: 100dvh;
+		overflow-x: clip;
+	}
+	.hero-title {
+		font-size: clamp(56px, 8.4vw, 116px);
+		line-height: 0.9;
+		letter-spacing: -0.035em;
+	}
+	.h2 {
+		font-size: clamp(38px, 4.6vw, 64px);
+		line-height: 0.95;
+		letter-spacing: -0.025em;
+	}
+	.final {
+		font-size: clamp(44px, 5.6vw, 76px);
+		line-height: 0.92;
+		letter-spacing: -0.03em;
+	}
+	.kicker {
+		margin-bottom: 12px;
+		font-size: 13px;
+		font-weight: 800;
+		letter-spacing: 0.18em;
+		text-transform: uppercase;
+		color: var(--accent);
+	}
+	.lede {
+		margin-top: 16px;
+		max-width: 30rem;
+		font-size: 1.25rem;
+		line-height: 1.4;
+		font-weight: 600;
+		opacity: 0.75;
 	}
 	.strike {
 		position: relative;
@@ -313,79 +336,191 @@
 		position: absolute;
 		left: -3%;
 		right: -3%;
-		top: 55%;
-		height: 0.13em;
+		top: 54%;
+		height: 0.12em;
 		background: var(--accent);
 		border-radius: 999px;
 		transform: rotate(-4deg);
 	}
-	.cta {
+	.btn-ink {
+		border-radius: 999px;
+		background: var(--ink);
+		color: var(--paper);
+		padding: 8px 16px;
+	}
+	.btn-sun {
 		display: block;
 		border: 2px solid var(--ink);
 		border-radius: 999px;
 		background: var(--sun);
-		padding: 12px;
+		padding: 13px;
 		text-align: center;
-		font-size: 1.25rem;
+		font-size: 1.2rem;
 		font-weight: 800;
 	}
-	.band {
-		background: var(--surface);
-		border-block: 2px solid var(--ink);
+
+	/* Feature rows: copy and visual side by side on wide screens, alternating sides. */
+	.feature {
+		display: grid;
+		gap: 40px;
+		max-width: 72rem;
+		margin: 0 auto;
+		padding: 64px 20px;
+		align-items: center;
 	}
-	.card {
-		border: 2px solid var(--ink);
-		border-radius: 24px;
-		background: var(--surface);
-		padding: 18px;
-		box-shadow: 4px 4px 0 var(--ink);
+	@media (min-width: 768px) {
+		.feature {
+			grid-template-columns: 1fr 1fr;
+			gap: 64px;
+			padding: 96px 32px;
+		}
+		.feature.flip .copy {
+			order: 2;
+		}
 	}
-	.band .card {
-		background: var(--paper);
+	.way {
+		display: flex;
+		align-items: center;
+		gap: 12px;
 	}
-	.num {
+	.way span {
 		display: grid;
 		width: 40px;
 		height: 40px;
+		flex-shrink: 0;
 		place-items: center;
-		border: 2px solid var(--ink);
-		border-radius: 999px;
-		background: var(--sun);
-		font-weight: 900;
-	}
-	.pill {
-		border: 2px solid var(--ink);
 		border-radius: 999px;
 		background: var(--surface);
-		padding: 4px 12px;
+		border: 2px solid var(--ink);
+		font-size: 18px;
 	}
-	.link {
-		font-family: ui-monospace, monospace;
-		font-size: 13px;
-		font-weight: 700;
-		color: var(--accent);
+	.arrow {
+		font-size: 34px;
+		font-weight: 900;
+		flex-shrink: 0;
 	}
-	.chat {
-		border-radius: 18px 18px 18px 4px;
-		background: #dcf8c6;
-		color: #111;
-		padding: 10px 14px;
-		box-shadow: 0 1px 2px rgb(0 0 0 / 0.2);
-		font-family: system-ui, sans-serif;
+
+	.sticker-badge {
+		position: absolute;
+		display: grid;
+		width: 72px;
+		height: 72px;
+		place-items: center;
+		border-radius: 999px;
+		border: 2.5px solid var(--ink);
+		background: var(--surface);
+		box-shadow: 4px 4px 0 var(--ink);
+		animation: bob 4s ease-in-out infinite;
 	}
-	.float-card {
-		box-shadow: 5px 5px 0 var(--ink);
-		animation: rise 600ms cubic-bezier(0.34, 1.3, 0.64, 1) 900ms both;
+	.sticker-badge:nth-of-type(2) {
+		animation-delay: -1.3s;
 	}
-	@keyframes rise {
-		from {
-			opacity: 0;
-			transform: translateY(16px);
+	.sticker-badge:nth-of-type(3) {
+		animation-delay: -2.6s;
+	}
+	@keyframes bob {
+		50% {
+			translate: 0 -8px;
 		}
 	}
+
+	/* WhatsApp-ish chats, so the "before" and the shared link look like what people know. */
+	.chat-bubble {
+		border-radius: 16px 16px 4px 16px;
+		background: #d9fdd3;
+		color: #111b21;
+		padding: 10px 12px;
+		font-family: system-ui, sans-serif;
+		font-size: 14px;
+		line-height: 1.35;
+		box-shadow: 0 1px 1px rgb(0 0 0 / 0.12);
+		rotate: -2deg;
+	}
+	.wa {
+		display: flex;
+		width: 100%;
+		max-width: 360px;
+		flex-direction: column;
+		gap: 10px;
+		border-radius: 28px;
+		background: #efe7dc;
+		padding: 18px 14px;
+		font-family: system-ui, sans-serif;
+		font-size: 15px;
+		color: #111b21;
+		box-shadow: 0 30px 60px -24px rgb(30 21 50 / 0.4);
+	}
+	.wa-them,
+	.wa-me {
+		max-width: 86%;
+		border-radius: 14px;
+		padding: 8px 10px;
+		box-shadow: 0 1px 1px rgb(0 0 0 / 0.12);
+	}
+	.wa-them {
+		align-self: flex-start;
+		background: #fff;
+		border-top-left-radius: 4px;
+	}
+	.wa-me {
+		align-self: flex-end;
+		background: #d9fdd3;
+		border-top-right-radius: 4px;
+		padding: 4px;
+	}
+	.wa-me > p {
+		padding: 0 6px 4px;
+	}
+	.wa-preview {
+		overflow: hidden;
+		border-radius: 10px;
+		background: rgb(0 0 0 / 0.05);
+	}
+	.wa-preview img {
+		display: block;
+		width: 100%;
+		height: auto;
+	}
+
+	.creators {
+		display: grid;
+		gap: 32px;
+		border-radius: 32px;
+		background: var(--ink);
+		color: var(--paper);
+		padding: 40px 28px;
+	}
+	.creators .kicker {
+		color: var(--sun);
+	}
+	@media (min-width: 768px) {
+		.creators {
+			grid-template-columns: 0.9fr 1.6fr;
+			align-items: center;
+			padding: 56px;
+		}
+	}
+
+	.sticky-bar {
+		position: fixed;
+		right: 0;
+		bottom: 0;
+		left: 0;
+		z-index: 20;
+		padding: 12px 16px max(12px, env(safe-area-inset-bottom));
+		background: linear-gradient(to top, var(--paper) 70%, transparent);
+		translate: 0 110%;
+		transition: translate 250ms ease;
+	}
+	.sticky-bar.show {
+		translate: 0 0;
+	}
 	@media (prefers-reduced-motion: reduce) {
-		.float-card {
+		.sticker-badge {
 			animation: none;
+		}
+		.sticky-bar {
+			transition: none;
 		}
 	}
 </style>
